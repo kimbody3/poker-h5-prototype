@@ -8,7 +8,7 @@
 
 | 模块名称 | 在线预览链接 (点击跳转) | 适用场景 |
 | :--- | :--- | :--- |
-| **H5 接入原型** | [🚀 点击打开 H5 原型](https://kimbody3.github.io/poker-h5-prototype/h5/) | 移动端、App 内嵌 H5 交互演示 |
+| **H5 接入原型** | [🚀 点击打开 H5 原型](https://kimbody3.github.io/poker-h5-prototype/H5/) | 移动端、App 内嵌 H5 交互演示 |
 | **New Poker 原型** | [🚀 点击打开 New Poker](https://kimbody3.github.io/poker-h5-prototype/newpoker/) | 全新迭代版本、功能更新演示 |
 
 ---
