@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Poker Pro - 德扑竞技平台原型 V2</title>
+    <!-- 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- 引入 Babel 用于浏览器内编译 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 隐藏滚动条但保留滚动功能 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        body { background-color: #111827; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        
+        /* 移动端容器适配 */
+        .app-container {
+            width: 100vw;
+            height: 100vh;
+            max-width: 480px;
+            margin: 0 auto;
+            background-color: #1f2937;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        /* 扁平化扑克桌样式 (Poker Now 风格) */
+        .poker-table-flat {
+            background: #064e3b; /* 深翡翠绿 */
+            border-radius: 9999px;
+            border: 8px solid #0f766e;
+            position: relative;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
+        }
+        
+        .card {
+            background: white; color: black; border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            display: flex; justify-content: center; align-items: center;
+            font-weight: bold; font-family: monospace;
+        }
+        .card.red { color: #ef4444; }
+        .card.black { color: #111827; }
+        
+        /* 滑块定制 */
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 24px; width: 24px;
+            border-radius: 50%; background: #10b981;
+            cursor: pointer; margin-top: -8px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 8px; cursor: pointer;
+            background: #374151; border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- 全局图标组件 ---
+        const Icons = {
+            Message: () => <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" /></svg>,
+            Club: () => <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>,
+            Play: () => <svg fill="currentColor" viewBox="0 0 24 24" className="w-8 h-8"><path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm14.024-.983a1.125 1.125 0 010 1.966l-5.603 3.113A1.125 1.125 0 019 15.113V8.887c0-.857.921-1.4 1.671-.983l5.603 3.113z" clipRule="evenodd" /></svg>,
+            Trophy: () => <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0" /></svg>,
+            User: () => <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>,
+            ChevronLeft: () => <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>,
+            Settings: () => <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+            Bell: () => <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>,
+            Coin: () => <div className="w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center text-xs font-bold text-yellow-900 border border-yellow-300">C</div>,
+            Diamond: () => <div className="w-5 h-5 flex items-center justify-center text-blue-400 text-sm">💎</div>,
+        };
+
+        // --- 主应用组件 ---
+        function App() {
+            // 状态管理：视图导航
+            const [view, setView] = useState('login'); // login, register, main, clubDetail, gameRoom, createGame
+            const [activeTab, setActiveTab] = useState('home'); // messages, clubs, home, tournaments, profile
+            
+            // 状态管理：用户数据模拟 (代理系统)
+            const [user, setUser] = useState({
+                id: '10086',
+                name: '德扑王',
+                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+                diamonds: 1500,
+                coins: 50000,
+                agencyLevel: 2, 
+                boundClubId: 'CLUB_888',
+                myPromoCode: 'PROMO_999'
+            });
+
+            const renderView = () => {
+                switch(view) {
+                    case 'login': return <ScreenLogin setView={setView} />;
+                    case 'register': return <ScreenRegister setView={setView} />;
+                    case 'main': return <ScreenMain setView={setView} activeTab={activeTab} setActiveTab={setActiveTab} user={user} />;
+                    case 'clubDetail': return <ScreenClubDetail setView={setView} />;
+                    case 'createGame': return <ScreenCreateGame setView={setView} />;
+                    case 'gameRoom': return <ScreenGameRoom setView={setView} user={user} />;
+                    default: return <ScreenLogin setView={setView} />;
+                }
+            };
+
+            return (
+                <div className="app-container">
+                    {renderView()}
+                </div>
+            );
+        }
+
+        /* =========================================================
+           1. 登录 & 注册模块
+           ========================================================= */
+        function ScreenLogin({ setView }) {
+            return (
+                <div className="flex-1 flex flex-col items-center justify-center p-6 bg-gray-900">
+                    <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg mb-8">
+                        <Icons.Play />
+                    </div>
+                    <h1 className="text-3xl font-bold text-white mb-2">Poker Pro</h1>
+                    <p className="text-gray-400 mb-10 text-sm">专业德州扑克竞技与俱乐部平台</p>
+                    
+                    <div className="w-full space-y-4">
+                        <input type="text" placeholder="手机号 / 邮箱" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500" />
+                        <input type="password" placeholder="密码" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500" />
+                        
+                        <div className="flex justify-between text-sm">
+                            <span className="text-emerald-500 cursor-pointer">找回密码?</span>
+                        </div>
+                        
+                        <button onClick={() => setView('main')} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-4 shadow-lg shadow-emerald-600/20 transition-all">
+                            登 录
+                        </button>
+                        
+                        <div className="text-center mt-6">
+                            <span className="text-gray-400">还没有账号? </span>
+                            <span onClick={() => setView('register')} className="text-emerald-500 font-bold cursor-pointer">立即注册</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function ScreenRegister({ setView }) {
+            return (
+                <div className="flex-1 flex flex-col p-6 bg-gray-900">
+                    <button onClick={() => setView('login')} className="text-gray-400 mt-4 mb-6 flex items-center">
+                        <Icons.ChevronLeft /> 返回
+                    </button>
+                    <h2 className="text-2xl font-bold text-white mb-6">注册账号</h2>
+                    
+                    <div className="w-full space-y-4">
+                        <div className="flex gap-2">
+                            <button className="flex-1 bg-gray-800 border border-emerald-500 text-emerald-500 py-2 rounded-lg font-bold">手机注册</button>
+                            <button className="flex-1 bg-gray-800 border border-gray-700 text-gray-400 py-2 rounded-lg">邮箱注册</button>
+                        </div>
+                        
+                        <input type="text" placeholder="请输入手机号" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500" />
+                        <div className="flex gap-2">
+                            <input type="text" placeholder="验证码" className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500" />
+                            <button className="bg-gray-700 text-white px-4 rounded-lg text-sm whitespace-nowrap">获取验证码</button>
+                        </div>
+                        <input type="password" placeholder="设置密码" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500" />
+                        
+                        <div className="pt-4">
+                            <label className="text-gray-400 text-xs mb-1 block">推广码 / 邀请码 (选填)</label>
+                            <input type="text" placeholder="输入俱乐部或代理推广码" className="w-full bg-gray-800 border border-dashed border-emerald-500/50 rounded-lg px-4 py-3 text-emerald-400 focus:outline-none focus:border-emerald-500 placeholder-gray-600" />
+                            <p className="text-xs text-gray-500 mt-2">填写游戏币俱乐部推广码，即可成为该俱乐部二级用户并开启专属代理权限。</p>
+                        </div>
+                        
+                        <button onClick={() => setView('main')} className="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg mt-6 shadow-lg">
+                            注 册 并 登 录
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        /* =========================================================
+           2. 主界面大厅
+           ========================================================= */
+        function ScreenMain({ setView, activeTab, setActiveTab, user }) {
+            return (
+                <div className="flex-1 flex flex-col bg-gray-900">
+                    {/* 顶部状态栏 */}
+                    <div className="flex justify-between items-center p-4 bg-gray-800/50 backdrop-blur-md sticky top-0 z-10">
+                        <div className="flex items-center gap-3">
+                            <img src={user.avatar} className="w-10 h-10 rounded-full border-2 border-emerald-500" />
+                            <div>
+                                <h3 className="text-sm font-bold text-white">{user.name}</h3>
+                                <div className="flex gap-2 text-xs">
+                                    <span className="flex items-center gap-1"><Icons.Coin/> {user.coins}</span>
+                                    <span className="flex items-center gap-1"><Icons.Diamond/> {user.diamonds}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* 右侧操作区：设置 & 动态消息铃铛 */}
+                        <div className="flex items-center gap-2">
+                            {/* 当处于俱乐部、首页、锦标赛时，显示消息红点铃铛 */}
+                            {['clubs', 'home', 'tournaments'].includes(activeTab) && (
+                                <button onClick={() => setActiveTab('messages')} className="relative p-2 text-gray-400 hover:text-white transition-colors">
+                                    <Icons.Bell />
+                                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-gray-900 shadow-sm animate-pulse"></span>
+                                </button>
+                            )}
+                            <button className="p-2 text-gray-400 hover:text-white transition-colors"><Icons.Settings /></button>
+                        </div>
+                    </div>
+
+                    {/* 主内容滚动区 */}
+                    <div className="flex-1 overflow-y-auto no-scrollbar relative">
+                        {activeTab === 'messages' && <TabMessages />}
+                        {activeTab === 'clubs' && <TabClubs setView={setView} />}
+                        {activeTab === 'home' && <TabHome setView={setView} />}
+                        {activeTab === 'tournaments' && <TabTournaments />}
+                        {activeTab === 'profile' && <TabProfile user={user} />}
+                    </div>
+
+                    {/* 底部5大标签导航 */}
+                    <div className="h-16 bg-gray-800 border-t border-gray-700 flex justify-around items-center px-2 pb-safe">
+                        <NavBtn icon={<Icons.Message />} label="消息" active={activeTab==='messages'} onClick={()=>setActiveTab('messages')} />
+                        <NavBtn icon={<Icons.Club />} label="俱乐部" active={activeTab==='clubs'} onClick={()=>setActiveTab('clubs')} />
+                        
+                        {/* 首页中心大按钮 */}
+                        <div className="relative -top-5" onClick={()=>setActiveTab('home')}>
+                            <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg cursor-pointer transition-transform hover:scale-105 ${activeTab === 'home' ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-gray-700'}`}>
+                                <div className="text-white"><Icons.Play /></div>
+                            </div>
+                        </div>
+                        
+                        <NavBtn icon={<Icons.Trophy />} label="锦标赛" active={activeTab==='tournaments'} onClick={()=>setActiveTab('tournaments')} />
+                        <NavBtn icon={<Icons.User />} label="我的" active={activeTab==='profile'} onClick={()=>setActiveTab('profile')} />
+                    </div>
+                </div>
+            );
+        }
+
+        function NavBtn({ icon, label, active, onClick }) {
+            return (
+                <div onClick={onClick} className={`flex flex-col items-center justify-center w-16 cursor-pointer transition-colors ${active ? 'text-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}>
+                    <div className="mb-1">{icon}</div>
+                    <span className="text-[10px] font-medium">{label}</span>
+                </div>
+            );
+        }
+
+        /* 标签1: 消息 (新增二级选项卡和好友消息) */
+        function TabMessages() {
+            const [msgTab, setMsgTab] = useState('friends'); // 'friends', 'system', 'contacts'
+
+            return (
+                <div className="p-4 space-y-4">
+                    {/* 广告活动轮播图模拟 */}
+                    <div className="w-full h-32 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg relative overflow-hidden shrink-0">
+                        <div className="absolute inset-0 bg-black/20"></div>
+                        <h2 className="text-white font-bold text-xl relative z-10 italic">WPT 亚洲线上巡回赛 即将开启!</h2>
+                    </div>
+                    
+                    {/* 二级选项卡：好友、系统、通讯录 */}
+                    <div className="flex bg-gray-800 rounded-lg p-1">
+                        <button onClick={()=>setMsgTab('friends')} className={`flex-1 py-2 text-sm font-bold rounded-md transition-colors ${msgTab === 'friends' ? 'bg-gray-600 text-white shadow' : 'text-gray-400'}`}>好友消息</button>
+                        <button onClick={()=>setMsgTab('system')} className={`flex-1 py-2 text-sm font-bold rounded-md transition-colors ${msgTab === 'system' ? 'bg-gray-600 text-white shadow relative' : 'text-gray-400'}`}>
+                            系统消息
+                            {/* 红点提示 */}
+                            <span className="absolute top-2 right-4 w-2 h-2 bg-red-500 rounded-full"></span>
+                        </button>
+                        <button onClick={()=>setMsgTab('contacts')} className={`flex-1 py-2 text-sm font-bold rounded-md transition-colors ${msgTab === 'contacts' ? 'bg-gray-600 text-white shadow' : 'text-gray-400'}`}>通讯录</button>
+                    </div>
+
+                    {/* 消息列表区域 */}
+                    <div className="bg-gray-800 rounded-xl overflow-hidden min-h-[300px]">
+                        {msgTab === 'friends' && (
+                            <div>
+                                <ChatListItem name="Shark99 (牌友)" msg="晚上8点我们俱乐部开桌，速来！" time="18:30" avatar="https://api.dicebear.com/7.x/avataaars/svg?seed=Shark" unread={2} />
+                                <ChatListItem name="德州校长" msg="刚刚那把牌你弃的太早了..." time="昨天" avatar="https://api.dicebear.com/7.x/avataaars/svg?seed=Pro" />
+                                <ChatListItem name="FishBoy" msg="明天借我点钻石买互动道具😂" time="周二" avatar="https://api.dicebear.com/7.x/avataaars/svg?seed=Fish" />
+                            </div>
+                        )}
+
+                        {msgTab === 'system' && (
+                            <div>
+                                <MessageItem title="维护公告" desc="服务器将于本周五凌晨2点进行短时升级..." time="10分钟前" unread />
+                                <MessageItem title="奖励到账" desc="恭喜您在昨日SNG获得第1名，奖励已发放。" time="昨天" />
+                                <MessageItem title="审核通过" desc="您申请加入的【猎人俱乐部】已通过审核。" time="3天前" />
+                            </div>
+                        )}
+
+                        {msgTab === 'contacts' && (
+                            <div className="flex flex-col items-center justify-center p-10 text-gray-500">
+                                <div className="text-4xl mb-3">📇</div>
+                                <p className="text-sm">暂无新联系人</p>
+                                <button className="mt-4 border border-gray-600 px-4 py-1.5 rounded-full text-xs text-emerald-400">添加好友</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function ChatListItem({ name, msg, time, avatar, unread }) {
+            return (
+                <div className="p-4 border-b border-gray-700/50 flex gap-3 active:bg-gray-700 cursor-pointer items-center">
+                    <img src={avatar} alt={name} className="w-12 h-12 rounded-full bg-gray-700 border border-gray-600" />
+                    <div className="flex-1 overflow-hidden">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-white font-medium">{name}</span>
+                            <span className="text-xs text-gray-500">{time}</span>
+                        </div>
+                        <p className="text-sm text-gray-400 truncate">{msg}</p>
+                    </div>
+                    {unread && (
+                        <div className="bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold shadow">
+                            {unread}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function MessageItem({ title, desc, time, unread }) {
+            return (
+                <div className="p-4 border-b border-gray-700/50 flex gap-3 active:bg-gray-700 cursor-pointer">
+                    <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${unread ? 'bg-red-500' : 'bg-transparent'}`}></div>
+                    <div className="flex-1">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-white font-medium">{title}</span>
+                            <span className="text-xs text-gray-500">{time}</span>
+                        </div>
+                        <p className="text-sm text-gray-400 line-clamp-1">{desc}</p>
+                    </div>
+                </div>
+            );
+        }
+
+        /* 标签2: 俱乐部 (已更新为并排大按钮 + 积分制描述) */
+        function TabClubs({ setView }) {
+            return (
+                <div className="p-4 h-full flex flex-col">
+                    {/* 创建与加入双按钮 */}
+                    <div className="flex gap-3 mb-4">
+                        <button className="flex-1 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white py-4 rounded-xl font-bold shadow-lg flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
+                            <span className="text-2xl">➕</span>
+                            <span>创建俱乐部</span>
+                        </button>
+                        <button className="flex-1 bg-gradient-to-br from-blue-500 to-blue-700 text-white py-4 rounded-xl font-bold shadow-lg flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
+                            <span className="text-2xl">🔍</span>
+                            <span>加入俱乐部</span>
+                        </button>
+                    </div>
+
+                    {/* WePoker 积分模式说明 */}
+                    <div className="bg-gray-800/50 border border-gray-700 p-3 rounded-lg text-xs text-gray-400 mb-4 leading-relaxed">
+                        <span className="text-emerald-400 font-bold">★ 积分俱乐部模式 (WePoker规则)：</span><br/>
+                        进入俱乐部随时自由带入积分上桌，最高限制由俱乐部管理设定。平台系统仅做战绩记录与战局审核，不提供内置货币交易与带出服务。请在线下或直接通过您的俱乐部管理员进行清算。
+                    </div>
+
+                    <div className="flex justify-between items-end mb-2 px-1">
+                        <h3 className="text-white font-bold text-sm">我的俱乐部</h3>
+                    </div>
+
+                    <div className="space-y-3">
+                        <ClubCard setView={setView} name="皇家同花顺战队" members={1250} tables={8} isManager />
+                        <ClubCard setView={setView} name="北京朝阳德扑联盟" members={340} tables={2} />
+                        <ClubCard setView={setView} name="Shark 职业集训营" members={89} tables={0} />
+                    </div>
+                </div>
+            );
+        }
+
+        function ClubCard({ setView, name, members, tables, isManager }) {
+            return (
+                <div onClick={() => setView('clubDetail')} className="bg-gray-800 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-700 active:scale-95 transition-transform border border-transparent hover:border-gray-600">
+                    <div className="w-14 h-14 bg-gray-900 rounded-lg flex items-center justify-center text-2xl border border-gray-700 shadow-inner">🛡️</div>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-white font-bold text-base">{name}</h3>
+                            {isManager && <span className="bg-yellow-500/20 text-yellow-500 text-[10px] px-1.5 py-0.5 rounded border border-yellow-500/30">管理</span>}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1 flex gap-3">
+                            <span>👥 {members} 人</span>
+                            {tables > 0 ? (
+                                <span className="text-emerald-400">🔥 {tables} 桌进行中</span>
+                            ) : (
+                                <span>💤 休息中</span>
+                            )}
+                        </div>
+                    </div>
+                    <Icons.ChevronLeft className="w-5 h-5 text-gray-600 rotate-180" />
+                </div>
+            );
+        }
+
+        /* 标签3: 首页中心 */
+        function TabHome({ setView }) {
+            return (
+                <div className="p-4 space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div onClick={() => setView('createGame')} className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-6 text-center cursor-pointer shadow-lg shadow-emerald-900/50 active:scale-95 transition-transform">
+                            <div className="text-4xl mb-2">➕</div>
+                            <div className="text-white font-bold text-lg">创建牌局</div>
+                            <div className="text-emerald-100 text-xs mt-1">自建好友局</div>
+                        </div>
+                        <div className="bg-gradient-to-br from-blue-500 to-indigo-700 rounded-2xl p-6 text-center cursor-pointer shadow-lg shadow-indigo-900/50 active:scale-95 transition-transform">
+                            <div className="text-4xl mb-2">🔍</div>
+                            <div className="text-white font-bold text-lg">加入牌局</div>
+                            <div className="text-blue-100 text-xs mt-1">输入房间号</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div className="flex justify-between items-end mb-3 px-1">
+                            <h3 className="text-white font-bold text-lg">进行中的牌局</h3>
+                            <span className="text-xs text-gray-400">共 2 局</span>
+                        </div>
+                        <div className="space-y-3">
+                            <GameCard setView={setView} title="周末狂欢 NLH" blinds="10/20" time="已进行 1:20:00" players="6/8" />
+                            <GameCard setView={setView} title="奥马哈 PLO 测试" blinds="5/10" time="已进行 0:45:00" players="3/6" isOmaha />
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function GameCard({ setView, title, blinds, time, players, isOmaha }) {
+            return (
+                <div onClick={() => setView('gameRoom')} className="bg-gray-800 border border-gray-700 rounded-xl p-4 relative overflow-hidden cursor-pointer active:bg-gray-700">
+                    <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[10px] px-2 py-1 rounded-bl-lg font-bold">
+                        {isOmaha ? 'OMAHA' : 'NLH'}
+                    </div>
+                    <h4 className="text-white font-bold mb-2 pr-10">{title}</h4>
+                    <div className="flex justify-between text-sm">
+                        <div className="text-emerald-400 font-mono">盲注: {blinds}</div>
+                        <div className="text-gray-400">👫 {players}</div>
+                    </div>
+                    <div className="mt-3 text-xs text-gray-500 flex justify-between items-center">
+                        <span>⏱ {time}</span>
+                        <span className="text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">点击进入 ➡️</span>
+                    </div>
+                </div>
+            );
+        }
+
+        /* 标签4: 锦标赛 MTT */
+        function TabTournaments() {
+            return (
+                <div className="p-4">
+                    <div className="flex space-x-2 overflow-x-auto no-scrollbar mb-4 pb-2">
+                        <span className="px-4 py-1.5 bg-emerald-600 text-white text-sm rounded-full whitespace-nowrap">全部比赛</span>
+                        <span className="px-4 py-1.5 bg-gray-800 text-gray-300 text-sm rounded-full whitespace-nowrap">我报名的</span>
+                        <span className="px-4 py-1.5 bg-gray-800 text-gray-300 text-sm rounded-full whitespace-nowrap">免费赛(Freeroll)</span>
+                    </div>
+                    <div className="space-y-4">
+                        <TourneyCard name="每日大师赛 10W GTD" time="今天 20:00" buyIn="1000 金币" pool="100,000" status="报名中" />
+                        <TourneyCard name="新手福利免费赛" time="今天 22:00" buyIn="免费" pool="5,000" status="迟到报名" />
+                        <TourneyCard name="周末百万保底主赛" time="周六 19:00" buyIn="5000 金币" pool="1,000,000" status="即将开始" />
+                    </div>
+                </div>
+            );
+        }
+
+        function TourneyCard({ name, time, buyIn, pool, status }) {
+            const isReg = status === '报名中';
+            return (
+                <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                    <div className="flex justify-between items-start mb-2">
+                        <h4 className="text-white font-bold">{name}</h4>
+                        <span className={`text-[10px] px-2 py-0.5 rounded ${isReg ? 'bg-emerald-500/20 text-emerald-400' : 'bg-orange-500/20 text-orange-400'}`}>{status}</span>
+                    </div>
+                    <div className="flex gap-4 text-xs mb-3">
+                        <div className="text-gray-400">报名费: <span className="text-white">{buyIn}</span></div>
+                        <div className="text-gray-400">保底: <span className="text-yellow-400 font-bold">{pool}</span></div>
+                    </div>
+                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-700/50 text-sm">
+                        <span className="text-gray-400">🕒 {time}</span>
+                        <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold">查看详情</button>
+                    </div>
+                </div>
+            );
+        }
+
+        /* 标签5: 我的 (含代理系统) */
+        function TabProfile({ user }) {
+            return (
+                <div className="p-4 space-y-4">
+                    <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-5 rounded-2xl border border-gray-700 shadow-lg">
+                        <div className="text-gray-400 text-sm mb-4">我的资产 (Wallet)</div>
+                        <div className="grid grid-cols-2 gap-4 divide-x divide-gray-700">
+                            <div>
+                                <div className="text-gray-500 text-xs mb-1">游戏币 (可提现)</div>
+                                <div className="text-2xl font-bold text-white flex items-center gap-2"><Icons.Coin/> {user.coins}</div>
+                            </div>
+                            <div className="pl-4">
+                                <div className="text-gray-500 text-xs mb-1">钻石 (开房/道具)</div>
+                                <div className="text-2xl font-bold text-white flex items-center gap-2"><Icons.Diamond/> {user.diamonds}</div>
+                            </div>
+                        </div>
+                        <div className="mt-5 flex gap-3">
+                            <button className="flex-1 bg-emerald-600/20 text-emerald-400 py-2 rounded-lg text-sm font-bold border border-emerald-600/30">充值钻石</button>
+                            <button className="flex-1 bg-blue-600/20 text-blue-400 py-2 rounded-lg text-sm font-bold border border-blue-600/30">兑换金币</button>
+                        </div>
+                    </div>
+
+                    <div className="bg-indigo-900/30 border border-indigo-500/30 rounded-xl p-4 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[10px] px-2 py-1 rounded-bl-lg">推广系统</div>
+                        <h3 className="text-white font-bold text-sm mb-3 flex items-center gap-2">🤝 代理与推广中心</h3>
+                        
+                        <div className="bg-gray-900/50 rounded-lg p-3 text-xs mb-3">
+                            <div className="flex justify-between mb-1">
+                                <span className="text-gray-400">当前身份:</span>
+                                <span className="text-emerald-400 font-bold">二级推广代理 (已绑定俱乐部)</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-400">所属上级:</span>
+                                <span className="text-white">俱乐部 ID: {user.boundClubId}</span>
+                            </div>
+                        </div>
+
+                        <div className="text-sm">
+                            <div className="text-gray-400 text-xs mb-1">您的专属二级推广码:</div>
+                            <div className="flex gap-2">
+                                <div className="flex-1 bg-gray-800 border border-gray-600 text-emerald-400 font-mono font-bold px-3 py-2 rounded-lg text-center tracking-widest">
+                                    {user.myPromoCode}
+                                </div>
+                                <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 rounded-lg font-bold text-xs">复制</button>
+                            </div>
+                            <p className="text-[10px] text-gray-500 mt-2">分享此码，新用户注册填写后将绑定为您名下会员，您可获得抽水返利。</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-gray-800 rounded-xl overflow-hidden">
+                        <ProfileMenu icon="📊" label="牌局回顾 (战绩)" />
+                        <ProfileMenu icon="🛡️" label="我的战队" />
+                        <ProfileMenu icon="⚙️" label="游戏设置 (声音/桌布)" />
+                        <ProfileMenu icon="🌐" label="语言 (Language)" border={false} />
+                    </div>
+                </div>
+            );
+        }
+
+        function ProfileMenu({ icon, label, border = true }) {
+            return (
+                <div className={`p-4 flex items-center justify-between active:bg-gray-700 cursor-pointer ${border ? 'border-b border-gray-700/50' : ''}`}>
+                    <div className="flex items-center gap-3">
+                        <span className="text-xl">{icon}</span>
+                        <span className="text-white text-sm">{label}</span>
+                    </div>
+                    <Icons.ChevronLeft className="w-4 h-4 text-gray-500 rotate-180" />
+                </div>
+            );
+        }
+
+        /* =========================================================
+           3. 子页面：创建牌局 & 俱乐部详情
+           ========================================================= */
+        function ScreenCreateGame({ setView }) {
+            return (
+                <div className="flex-1 flex flex-col bg-gray-900">
+                    <div className="p-4 flex items-center gap-4 bg-gray-800 border-b border-gray-700">
+                        <button onClick={() => setView('main')} className="text-gray-400"><Icons.ChevronLeft /></button>
+                        <h2 className="text-lg font-bold text-white">创建牌局 (类似WePoker)</h2>
+                    </div>
+                    <div className="p-4 space-y-6 overflow-y-auto">
+                        <div>
+                            <label className="text-gray-400 text-sm mb-2 block">游戏类型</label>
+                            <div className="flex gap-2">
+                                <button className="flex-1 bg-emerald-600 text-white py-2 rounded-lg font-bold">德州扑克 NLH</button>
+                                <button className="flex-1 bg-gray-800 text-gray-400 py-2 rounded-lg">奥马哈 PLO</button>
+                                <button className="flex-1 bg-gray-800 text-gray-400 py-2 rounded-lg">短牌 6+</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-gray-400 text-sm mb-2 block">盲注级别 (小/大/前注)</label>
+                            <select className="w-full bg-gray-800 text-white border border-gray-700 rounded-lg p-3 outline-none">
+                                <option>1 / 2</option>
+                                <option>5 / 10</option>
+                                <option>10 / 20 / 2</option>
+                                <option>50 / 100 / 10</option>
+                            </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-gray-400 text-sm mb-2 block">人数</label>
+                                <select className="w-full bg-gray-800 text-white border border-gray-700 rounded-lg p-3 outline-none">
+                                    <option>6人桌</option>
+                                    <option>8人桌</option>
+                                    <option>9人桌</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-gray-400 text-sm mb-2 block">牌局时长</label>
+                                <select className="w-full bg-gray-800 text-white border border-gray-700 rounded-lg p-3 outline-none">
+                                    <option>1小时</option>
+                                    <option>2小时</option>
+                                    <option>4小时</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-gray-400 text-sm mb-2 block">带入限制</label>
+                            <div className="flex items-center gap-2 text-white">
+                                <input type="number" defaultValue={100} className="w-20 bg-gray-800 border border-gray-700 rounded p-2 text-center" /> BB 
+                                <span className="text-gray-500">至</span>
+                                <input type="number" defaultValue={400} className="w-20 bg-gray-800 border border-gray-700 rounded p-2 text-center" /> BB
+                            </div>
+                        </div>
+                        
+                        <div className="bg-gray-800 p-4 rounded-xl flex justify-between items-center border border-gray-700">
+                            <div>
+                                <div className="text-white text-sm font-bold">建房消耗</div>
+                                <div className="text-gray-400 text-xs">房主支付</div>
+                            </div>
+                            <div className="flex items-center gap-1 text-blue-400 font-bold">
+                                <Icons.Diamond /> 10 钻石
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-gray-800 border-t border-gray-700 pb-safe">
+                        <button onClick={() => setView('gameRoom')} className="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg shadow-lg">确认创建并进入</button>
+                    </div>
+                </div>
+            );
+        }
+
+        function ScreenClubDetail({ setView }) {
+            return (
+                <div className="flex-1 flex flex-col bg-gray-900">
+                     <div className="p-4 flex items-center gap-4 bg-gray-800 border-b border-gray-700">
+                        <button onClick={() => setView('main')} className="text-gray-400"><Icons.ChevronLeft /></button>
+                        <h2 className="text-lg font-bold text-white">皇家同花顺战队</h2>
+                    </div>
+                    <div className="p-4">
+                        <div className="bg-gray-800 rounded-xl p-4 mb-4 flex gap-4">
+                             <div className="w-20 h-20 bg-gray-700 rounded-xl flex items-center justify-center text-4xl">🛡️</div>
+                             <div>
+                                 <h3 className="text-white font-bold text-lg">皇家同花顺战队</h3>
+                                 <p className="text-gray-400 text-xs mt-1">ID: 888888</p>
+                                 <p className="text-emerald-400 text-xs mt-2 border border-emerald-400/30 bg-emerald-400/10 inline-block px-2 py-1 rounded">积分审核制俱乐部</p>
+                             </div>
+                        </div>
+                        <div className="flex gap-2 mb-6">
+                            <button className="flex-1 bg-gray-800 text-white py-2 rounded-lg text-sm border border-gray-700">成员列表(1250)</button>
+                            <button className="flex-1 bg-gray-800 text-white py-2 rounded-lg text-sm border border-gray-700">战绩统计</button>
+                            <button className="flex-1 bg-gray-800 text-white py-2 rounded-lg text-sm border border-gray-700">设置</button>
+                        </div>
+
+                        <div className="flex justify-between items-center mb-4">
+                            <h4 className="text-white font-bold">俱乐部牌局</h4>
+                            <button onClick={() => setView('createGame')} className="text-emerald-500 text-sm font-bold flex items-center gap-1">➕ 创建牌局</button>
+                        </div>
+
+                        <div className="space-y-3">
+                            <GameCard setView={setView} title="内部常规桌1" blinds="10/20" time="已进行 0:20:00" players="4/8" />
+                            <GameCard setView={setView} title="内部常规桌2" blinds="50/100" time="已进行 1:10:00" players="8/8" />
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        /* =========================================================
+           4. 沉浸式游戏房间
+           ========================================================= */
+        function ScreenGameRoom({ setView, user }) {
+            const [gameState, setGameState] = useState('waiting');
+            const [pot, setPot] = useState(0);
+            const [communityCards, setCommunityCards] = useState([]);
+            const [showAction, setShowAction] = useState(false);
+            const [betSlider, setBetSlider] = useState(20);
+            
+            const players = [
+                { id: 1, pos: 'bottom', name: user.name, stack: 10000, avatar: user.avatar, isHero: true, cards: ['A♠', 'K♥'], action: 'Hero' },
+                { id: 2, pos: 'left', name: 'Shark99', stack: 8500, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Shark', action: 'Check' },
+                { id: 3, pos: 'top-left', name: 'FishBoy', stack: 2100, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fish', action: 'Fold', folded: true },
+                { id: 4, pos: 'top-right', name: 'Pro123', stack: 15400, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Pro', action: 'Raise 200' },
+                { id: 5, pos: 'right', name: 'GamerX', stack: 5000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=X', action: 'Call' },
+            ];
+
+            const simulateDeal = () => {
+                if(gameState === 'waiting') {
+                    setGameState('preflop'); setPot(150); setCommunityCards([]); setShowAction(true);
+                } else if (gameState === 'preflop') {
+                    setGameState('flop'); setPot(550); setCommunityCards([{val:'Q♣', c:'black'}, {val:'J♣', c:'black'}, {val:'4♥', c:'red'}]);
+                } else if (gameState === 'flop') {
+                    setGameState('turn'); setPot(1200); setCommunityCards([{val:'Q♣', c:'black'}, {val:'J♣', c:'black'}, {val:'4♥', c:'red'}, {val:'10♠', c:'black'}]);
+                } else if (gameState === 'turn') {
+                    setGameState('river'); setPot(2500); setCommunityCards([{val:'Q♣', c:'black'}, {val:'J♣', c:'black'}, {val:'4♥', c:'red'}, {val:'10♠', c:'black'}, {val:'2♦', c:'red'}]);
+                } else {
+                    setGameState('waiting'); setPot(0); setCommunityCards([]); setShowAction(false);
+                }
+            };
+
+            const [showProfileModal, setShowProfileModal] = useState(false);
+            const [selectedPlayer, setSelectedPlayer] = useState(null);
+
+            const handleAvatarClick = (p) => {
+                setSelectedPlayer(p);
+                setShowProfileModal(true);
+            };
+
+            return (
+                <div className="flex-1 bg-[#111827] flex flex-col relative">
+                    <div className="absolute top-0 w-full flex justify-between p-4 z-20 pointer-events-none">
+                        <button onClick={() => setView('main')} className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white pointer-events-auto backdrop-blur-sm border border-white/10">
+                            <Icons.ChevronLeft />
+                        </button>
+                        <div className="flex gap-2 pointer-events-auto">
+                            <button className="h-8 px-3 bg-black/50 rounded-full text-white text-xs flex items-center backdrop-blur-sm border border-white/10">战绩</button>
+                            <button className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white backdrop-blur-sm border border-white/10">⚙️</button>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 relative flex items-center justify-center mt-10 p-4">
+                        <div className="w-full h-[60%] max-h-[400px] poker-table-flat flex flex-col items-center justify-center relative">
+                            <div className="text-emerald-900/40 font-bold text-3xl font-serif italic absolute z-0 pointer-events-none tracking-widest">
+                                POKER PRO
+                            </div>
+
+                            <div className="z-10 flex flex-col items-center">
+                                <div className="bg-black/60 text-emerald-400 px-4 py-1 rounded-full text-sm font-bold mb-3 border border-emerald-900 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                                    POT: {pot}
+                                </div>
+                                <div className="flex gap-1 h-14">
+                                    {communityCards.map((c, i) => (
+                                        <div key={i} className={`card w-10 text-sm ${c.c}`}>{c.val}</div>
+                                    ))}
+                                    {Array.from({length: 5 - communityCards.length}).map((_, i) => (
+                                        <div key={`empty-${i}`} className="w-10 h-14 border border-white/10 rounded-md bg-black/20"></div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {players.map((p) => (
+                                <Seat 
+                                    key={p.id} 
+                                    player={p} 
+                                    onClick={() => handleAvatarClick(p)} 
+                                    showCards={gameState !== 'waiting' && p.isHero}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="absolute top-20 right-4 z-20">
+                        <button onClick={simulateDeal} className="bg-yellow-600 text-white px-3 py-1 text-xs rounded shadow">
+                            模拟流程 ({gameState})
+                        </button>
+                    </div>
+
+                    <div className="h-40 bg-gray-900 border-t border-gray-800 rounded-t-2xl p-3 flex flex-col justify-end pb-safe relative z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
+                        <div className="absolute top-[-20px] left-4 flex gap-2">
+                            <button className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-xl shadow-lg border border-gray-700">💬</button>
+                            <button className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-xl shadow-lg border border-gray-700">😀</button>
+                        </div>
+                        <div className="absolute top-[-20px] right-4 flex gap-2">
+                            <button className="h-10 px-3 bg-gray-800 rounded-full flex items-center justify-center text-xs text-gray-300 shadow-lg border border-gray-700 gap-1">
+                                ⏳ 延时
+                            </button>
+                        </div>
+
+                        {showAction ? (
+                            <>
+                                <div className="flex items-center gap-3 mb-3 mt-4 px-2">
+                                    <div className="bg-gray-800 text-white px-3 py-1 rounded text-sm font-mono border border-gray-700">{betSlider}</div>
+                                    <input 
+                                        type="range" min="20" max="10000" step="10" 
+                                        value={betSlider} onChange={(e)=>setBetSlider(e.target.value)} 
+                                        className="flex-1"
+                                    />
+                                    <button className="bg-gray-700 text-white px-3 py-1 rounded text-xs">All-in</button>
+                                </div>
+                                <div className="flex gap-2 h-14">
+                                    <button onClick={()=>setShowAction(false)} className="flex-1 bg-gradient-to-b from-red-500 to-red-700 text-white font-bold rounded-lg shadow-lg active:scale-95 flex flex-col items-center justify-center leading-tight">
+                                        <span className="text-lg">弃牌</span>
+                                        <span className="text-[10px] text-red-200">Fold</span>
+                                    </button>
+                                    <button onClick={()=>setShowAction(false)} className="flex-1 bg-gradient-to-b from-blue-500 to-blue-700 text-white font-bold rounded-lg shadow-lg active:scale-95 flex flex-col items-center justify-center leading-tight">
+                                        <span className="text-lg">跟注</span>
+                                        <span className="text-[10px] text-blue-200">Call 200</span>
+                                    </button>
+                                    <button onClick={()=>setShowAction(false)} className="flex-1 bg-gradient-to-b from-emerald-500 to-emerald-700 text-white font-bold rounded-lg shadow-lg active:scale-95 flex flex-col items-center justify-center leading-tight">
+                                        <span className="text-lg">加注</span>
+                                        <span className="text-[10px] text-emerald-200">Raise to {betSlider}</span>
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="h-14 flex items-center justify-center text-gray-500 text-sm italic">
+                                等待其他玩家行动...
+                            </div>
+                        )}
+                    </div>
+
+                    {showProfileModal && selectedPlayer && (
+                        <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowProfileModal(false)}>
+                            <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+                                <div className="p-4 flex items-center gap-4 bg-gray-800">
+                                    <img src={selectedPlayer.avatar} className="w-16 h-16 rounded-full border-2 border-gray-600 bg-gray-700" />
+                                    <div>
+                                        <h3 className="text-white font-bold text-lg">{selectedPlayer.name}</h3>
+                                        <p className="text-emerald-400 text-sm mt-1">筹码: {selectedPlayer.stack}</p>
+                                    </div>
+                                </div>
+                                <div className="p-4 border-b border-gray-800">
+                                    <div className="text-gray-400 text-xs mb-2">实时统计 (VPIP / PFR / 3Bet)</div>
+                                    <div className="flex gap-4 text-white font-mono">
+                                        <span>25%</span>
+                                        <span>18%</span>
+                                        <span>5%</span>
+                                    </div>
+                                </div>
+                                <div className="p-4">
+                                    <div className="text-gray-400 text-xs mb-3">互动道具 (消耗 1 💎)</div>
+                                    <div className="flex justify-around">
+                                        <button onClick={()=>setShowProfileModal(false)} className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center text-2xl hover:bg-gray-700 border border-gray-700">🍅</button>
+                                        <button onClick={()=>setShowProfileModal(false)} className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center text-2xl hover:bg-gray-700 border border-gray-700">🌹</button>
+                                        <button onClick={()=>setShowProfileModal(false)} className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center text-2xl hover:bg-gray-700 border border-gray-700">🍺</button>
+                                        <button onClick={()=>setShowProfileModal(false)} className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center text-2xl hover:bg-gray-700 border border-gray-700">💣</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function Seat({ player, onClick, showCards }) {
+            const posStyles = {
+                'bottom': { bottom: '-20px', left: '50%', transform: 'translateX(-50%)' },
+                'left': { left: '-20px', top: '50%', transform: 'translateY(-50%)' },
+                'right': { right: '-20px', top: '50%', transform: 'translateY(-50%)' },
+                'top-left': { top: '10%', left: '10%' },
+                'top-right': { top: '10%', right: '10%' },
+            };
+
+            return (
+                <div className="absolute z-20 flex flex-col items-center" style={posStyles[player.pos]}>
+                    {player.action && !player.isHero && (
+                        <div className="bg-gray-900/80 text-white text-[10px] px-2 py-0.5 rounded border border-gray-700 mb-1 backdrop-blur-sm shadow-lg whitespace-nowrap">
+                            {player.action}
+                        </div>
+                    )}
+                    
+                    {showCards && (
+                        <div className="flex gap-1 mb-1 absolute -top-8 rotate-[-5deg]">
+                            <div className="card w-8 h-12 text-sm black border border-gray-300">{player.cards[0]}</div>
+                            <div className="card w-8 h-12 text-sm red border border-gray-300 translate-y-1 rotate-[10deg]">{player.cards[1]}</div>
+                        </div>
+                    )}
+
+                    {!showCards && !player.folded && player.pos !== 'bottom' && (
+                        <div className="flex gap-1 mb-1 absolute -top-4 opacity-80">
+                            <div className="w-4 h-6 bg-red-800 border border-white/20 rounded-sm"></div>
+                            <div className="w-4 h-6 bg-red-800 border border-white/20 rounded-sm rotate-6"></div>
+                        </div>
+                    )}
+
+                    <div onClick={onClick} className={`relative cursor-pointer ${player.folded ? 'opacity-50 grayscale' : ''}`}>
+                        <div className={`w-12 h-12 rounded-full border-2 overflow-hidden bg-gray-800 shadow-xl ${player.isHero ? 'border-emerald-500' : 'border-gray-500'}`}>
+                            <img src={player.avatar} alt={player.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/80 border border-gray-600 rounded px-2 py-0.5 min-w-[60px] text-center shadow-lg">
+                            <div className="text-[10px] text-gray-300 truncate max-w-[50px] mx-auto leading-none">{player.name}</div>
+                            <div className="text-xs text-emerald-400 font-bold font-mono leading-none mt-0.5">{player.stack}</div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
