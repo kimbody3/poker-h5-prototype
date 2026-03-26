@@ -68,8 +68,7 @@
         </div>
         <div class="flex space-x-2">
             <button onclick="switchView('lobby')" id="btn-lobby" class="px-4 py-2 bg-gray-700 text-white font-bold rounded hover:bg-gray-600 transition">1. H5大厅</button>
-            <button onclick="switchView('table')" id="btn-table" class="px-4 py-2 bg-gray-700 text-white font-bold rounded hover:bg-gray-600 transition">2. 牌桌内页</button>
-            <button onclick="switchView('admin')" id="btn-admin" class="px-4 py-2 bg-yellow-500 text-gray-900 font-bold rounded hover:bg-yellow-400 shadow-lg transition">3. 管理后台</button>
+            <button onclick="switchView('admin')" id="btn-admin" class="px-4 py-2 bg-yellow-500 text-gray-900 font-bold rounded hover:bg-yellow-400 shadow-lg transition">2. 管理后台</button>
         </div>
     </div>
 
@@ -171,66 +170,7 @@
             </div>
         </div>
 
-        <!-- ================= 视图 2: 牌桌内页 ================= -->
-        <div id="view-table" class="view-section flex-col items-center w-full max-w-5xl gap-8 flex-md-row justify-center fade-in">
-            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 max-w-sm">
-                <h3 class="text-yellow-400 font-bold text-lg mb-2"><i class="fa-solid fa-mobile-screen"></i> 牌桌特性演示</h3>
-                <p class="text-sm text-gray-400 mb-4">展示核心玩法组件与运营增益功能。</p>
-                <div class="space-y-3">
-                    <button onclick="toggleInsuranceModal()" class="w-full py-2 bg-blue-900 border border-blue-500 text-blue-300 hover:bg-blue-800 rounded font-bold transition">模拟触发【购买保险】</button>
-                    <button onclick="toggleAOFMode()" id="btn-aof-toggle" class="w-full py-2 bg-red-900 border border-red-500 text-red-300 hover:bg-red-800 rounded font-bold transition">切换至【推推乐 (AOF)】模式</button>
-                </div>
-            </div>
-
-            <div class="mobile-frame flex flex-col bg-gray-900 relative">
-                <div class="bg-black/50 absolute top-0 w-full z-20 px-4 py-2 flex justify-between items-center">
-                    <div class="text-white text-lg"><i class="fa-solid fa-chevron-left"></i></div>
-                    <div class="text-xs text-gray-300">经典德州 1/2</div>
-                    <div class="text-white"><i class="fa-solid fa-bars"></i></div>
-                </div>
-                <div class="flex-1 bg-emerald-900 relative overflow-hidden flex flex-col justify-center items-center pt-10">
-                    <div class="w-80 h-112 border-8 border-emerald-950 bg-emerald-800 rounded-[100px] shadow-2xl relative flex justify-center items-center">
-                        <div class="opacity-10 text-3xl font-black text-white absolute">77 POKER</div>
-                        <div class="flex space-x-1 z-10">
-                            <div class="w-8 h-12 bg-white rounded border border-gray-300 shadow flex flex-col justify-center items-center text-red-600 font-bold text-sm">A<span class="text-lg">♥</span></div>
-                            <div class="w-8 h-12 bg-white rounded border border-gray-300 shadow flex flex-col justify-center items-center text-black font-bold text-sm">K<span class="text-lg">♠</span></div>
-                            <div class="w-8 h-12 bg-white rounded border border-gray-300 shadow flex flex-col justify-center items-center text-black font-bold text-sm">9<span class="text-lg">♣</span></div>
-                        </div>
-                        <div class="absolute top-1/3 bg-black/60 text-yellow-400 text-xs px-3 py-1 rounded-full font-bold">Pot: 450</div>
-                        <div class="absolute -top-6 left-1/2 -translate-x-1/2"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=1" class="w-12 h-12 rounded-full bg-gray-700 border-2 border-gray-500"></div>
-                        <div class="absolute bottom-10 -right-6"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=3" class="w-12 h-12 rounded-full bg-gray-700 border-2 border-gray-500"></div>
-                        <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                            <div class="flex space-x-1 mb-1 relative -top-4">
-                                <div class="w-10 h-14 bg-white rounded border border-gray-300 shadow flex justify-center items-center text-red-600 font-bold rotate-[-10deg]">A<span class="text-xl">♦</span></div>
-                                <div class="w-10 h-14 bg-white rounded border border-gray-300 shadow flex justify-center items-center text-red-600 font-bold rotate-[10deg]">A<span class="text-xl">♥</span></div>
-                            </div>
-                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="w-14 h-14 rounded-full bg-yellow-600 border-2 border-yellow-400 shadow-[0_0_15px_rgba(251,191,36,0.5)] z-10 relative -top-4">
-                        </div>
-                    </div>
-                </div>
-                <div id="action-bar-normal" class="h-24 bg-gray-900 border-t border-gray-700 p-2 flex justify-between space-x-2">
-                    <button class="flex-1 bg-gray-700 rounded-lg text-white font-bold">弃牌</button>
-                    <button class="flex-1 bg-blue-700 rounded-lg text-white font-bold">跟注 450</button>
-                    <button class="flex-1 bg-yellow-600 rounded-lg text-gray-900 font-bold">加注</button>
-                </div>
-                <div id="action-bar-aof" class="h-24 bg-gray-900 border-t border-red-900 p-2 justify-between space-x-4 hidden">
-                    <button class="flex-1 bg-gray-700 rounded-xl text-white font-bold">FOLD</button>
-                    <button class="flex-[2] bg-gradient-to-r from-red-600 to-red-800 rounded-xl text-white font-black text-xl uppercase tracking-widest">All-In</button>
-                </div>
-                <div id="insurance-modal" class="absolute inset-0 bg-black/80 z-50 flex-col justify-center items-center hidden fade-in">
-                    <div class="bg-gradient-to-b from-blue-900 to-gray-900 w-10/12 rounded-2xl border border-blue-500 p-5 shadow-2xl text-center">
-                        <div class="text-blue-400 font-bold text-xl mb-2">购买保险</div>
-                        <p class="text-gray-300 text-xs mb-4">胜率 82%，购买保险锁定 1,250 收益</p>
-                        <div class="flex space-x-3">
-                            <button onclick="toggleInsuranceModal()" class="flex-1 py-3 bg-gray-700 rounded-lg font-bold">放弃</button>
-                            <button onclick="toggleInsuranceModal()" class="flex-1 py-3 bg-blue-600 rounded-lg font-bold">确认投保</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= 视图 3: 管理后台 ================= -->
+        <!-- ================= 视图 2: 管理后台 ================= -->
         <div id="view-admin" class="view-section active w-full max-w-[1280px] h-[850px] bg-gray-800 rounded-xl shadow-2xl overflow-hidden border border-gray-700 flex fade-in">
             <!-- 侧边栏: 精简为 3 个选项 -->
             <div class="w-64 bg-gray-900 border-r border-gray-700 flex flex-col z-20">
@@ -731,7 +671,7 @@
         // ================= 顶层功能区 =================
         function switchView(viewId) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            ['lobby', 'table', 'admin'].forEach(id => {
+            ['lobby', 'admin'].forEach(id => {
                 const btn = document.getElementById('btn-' + id);
                 btn.className = "px-4 py-2 font-bold rounded transition " + (id === viewId ? "bg-yellow-500 text-gray-900 shadow-lg" : "bg-gray-700 text-white hover:bg-gray-600");
             });
@@ -888,18 +828,6 @@
                 lobbyTables.unshift(newT); renderLobbyTables();
                 setTimeout(() => { newT.isNew = false; }, 500);
             }, 500);
-        }
-
-        function toggleInsuranceModal() { 
-            const m = document.getElementById('insurance-modal');
-            m.classList.toggle('hidden'); m.classList.toggle('flex'); 
-        }
-        function toggleAOFMode() {
-            const isAof = document.getElementById('action-bar-aof').classList.contains('hidden');
-            document.getElementById('action-bar-normal').classList.toggle('hidden', isAof);
-            document.getElementById('action-bar-aof').classList.toggle('hidden', !isAof);
-            document.getElementById('action-bar-aof').classList.toggle('flex', isAof);
-            document.getElementById('btn-aof-toggle').innerHTML = isAof ? "恢复至【标准常规】模式" : "切换至【推推乐 (AOF)】模式";
         }
 
         // 表单模板高亮选择
