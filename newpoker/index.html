@@ -63,6 +63,44 @@
             width: 100%; height: 8px; cursor: pointer;
             background: #374151; border-radius: 4px;
         }
+
+        /* 竖版扑克桌样式 (深度写实优化) */
+        .poker-table-vertical {
+            /* 径向渐变模拟灯光打在桌面的光影效果 */
+            background: radial-gradient(ellipse at center, #358245 0%, #1a4f29 100%);
+            /* 减小圆角，让边缘更平直，呈现经典的跑道/长椭圆形 */
+            border-radius: 130px;
+            /* 模拟黑色皮质边缘扶手 */
+            border: 16px solid #181818;
+            /* 多重阴影增加3D立体感：外黑边、皮垫内阴影、桌面暗角、整体落地阴影 */
+            box-shadow: 
+                0 0 0 2px #0a0a0a,
+                inset 0 0 0 5px rgba(0,0,0,0.6), 
+                inset 0 0 40px rgba(0,0,0,0.5), 
+                0 20px 40px rgba(0,0,0,0.8);
+            width: 92%;
+            height: 82%;
+            position: relative;
+        }
+
+        /* 增加牌桌内圈的下注线 (Betting Line) */
+        .poker-table-vertical::after {
+            content: '';
+            position: absolute;
+            top: 35px; bottom: 35px; left: 25px; right: 25px;
+            border: 2px solid rgba(0, 0, 0, 0.15);
+            border-radius: 100px;
+            pointer-events: none;
+        }
+        
+        /* 堆叠操作按钮样式 */
+        .action-btn-stacked {
+            background: linear-gradient(to bottom, #333333, #1a1a1a);
+            border: 1px solid #404040;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+        }
     </style>
 </head>
 <body>
@@ -673,210 +711,209 @@
         }
 
         /* =========================================================
-           4. 沉浸式游戏房间
+           4. 沉浸式游戏房间 (WSOP 竖版布局还原)
            ========================================================= */
         function ScreenGameRoom({ setView, user }) {
-            const [gameState, setGameState] = useState('waiting');
-            const [pot, setPot] = useState(0);
-            const [communityCards, setCommunityCards] = useState([]);
-            const [showAction, setShowAction] = useState(false);
-            const [betSlider, setBetSlider] = useState(20);
+            const [gameState, setGameState] = useState('preflop');
+            const [pot, setPot] = useState('$0.04');
+            const [showAction, setShowAction] = useState(true);
             
             const players = [
-                { id: 1, pos: 'bottom', name: user.name, stack: 10000, avatar: user.avatar, isHero: true, cards: ['A♠', 'K♥'], action: 'Hero' },
-                { id: 2, pos: 'left', name: 'Shark99', stack: 8500, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Shark', action: 'Check' },
-                { id: 3, pos: 'top-left', name: 'FishBoy', stack: 2100, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fish', action: 'Fold', folded: true },
-                { id: 4, pos: 'top-right', name: 'Pro123', stack: 15400, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Pro', action: 'Raise 200' },
-                { id: 5, pos: 'right', name: 'GamerX', stack: 5000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=X', action: 'Call' },
+                { id: 1, pos: 'bottom', name: user.name, stack: '$1.49', avatar: user.avatar, isHero: true, cards: ['K♣', '3♥'], action: 'Hero', bet: '$0.02' },
+                { id: 2, pos: 'top', name: 'Shark99', stack: '$1.98', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Shark', action: 'Check', bet: '$0.02' },
+                { id: 3, pos: 'left', name: 'FishBoy', stack: '$2.10', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fish', folded: true },
+                { id: 4, pos: 'right', name: 'Pro123', stack: '$5.40', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Pro', folded: true },
+                { id: 5, pos: 'top-left', name: 'GamerX', stack: '$1.00', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=X', folded: true },
             ];
 
-            const simulateDeal = () => {
-                if(gameState === 'waiting') {
-                    setGameState('preflop'); setPot(150); setCommunityCards([]); setShowAction(true);
-                } else if (gameState === 'preflop') {
-                    setGameState('flop'); setPot(550); setCommunityCards([{val:'Q♣', c:'black'}, {val:'J♣', c:'black'}, {val:'4♥', c:'red'}]);
-                } else if (gameState === 'flop') {
-                    setGameState('turn'); setPot(1200); setCommunityCards([{val:'Q♣', c:'black'}, {val:'J♣', c:'black'}, {val:'4♥', c:'red'}, {val:'10♠', c:'black'}]);
-                } else if (gameState === 'turn') {
-                    setGameState('river'); setPot(2500); setCommunityCards([{val:'Q♣', c:'black'}, {val:'J♣', c:'black'}, {val:'4♥', c:'red'}, {val:'10♠', c:'black'}, {val:'2♦', c:'red'}]);
-                } else {
-                    setGameState('waiting'); setPot(0); setCommunityCards([]); setShowAction(false);
-                }
-            };
-
-            const [showProfileModal, setShowProfileModal] = useState(false);
-            const [selectedPlayer, setSelectedPlayer] = useState(null);
-
-            const handleAvatarClick = (p) => {
-                setSelectedPlayer(p);
-                setShowProfileModal(true);
-            };
-
             return (
-                <div className="flex-1 bg-[#111827] flex flex-col relative">
-                    <div className="absolute top-0 w-full flex justify-between p-4 z-20 pointer-events-none">
-                        <button onClick={() => setView('main')} className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white pointer-events-auto backdrop-blur-sm border border-white/10">
-                            <Icons.ChevronLeft />
-                        </button>
-                        <div className="flex gap-2 pointer-events-auto">
-                            <button className="h-8 px-3 bg-black/50 rounded-full text-white text-xs flex items-center backdrop-blur-sm border border-white/10">战绩</button>
-                            <button className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white backdrop-blur-sm border border-white/10">⚙️</button>
+                <div className="flex-1 bg-black flex flex-col relative overflow-hidden">
+                    {/* 顶部状态栏 (WSOP 风格) */}
+                    <div className="absolute top-0 w-full flex items-center justify-between p-2 z-40 bg-gradient-to-b from-black/80 to-transparent">
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setView('main')} className="text-gray-400 p-1">
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                            </button>
+                            <div className="bg-black/50 border border-gray-600 rounded-full px-3 py-1 flex items-center gap-2">
+                                <span className="text-red-500 text-xs bg-white rounded-full w-4 h-4 flex items-center justify-center font-bold">!</span>
+                                <div className="flex text-white text-xs font-bold gap-1"><span>K♣</span><span className="text-red-500">3♥</span></div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <button className="w-7 h-7 bg-black/60 border border-gray-700 rounded-full flex items-center justify-center text-gray-300 text-[10px] font-bold">||</button>
+                            <button className="w-7 h-7 bg-black/60 border border-gray-700 rounded-full flex items-center justify-center text-gray-300 text-xs">X</button>
+                            <button className="w-7 h-7 bg-black/60 border border-gray-700 rounded-full flex items-center justify-center text-gray-300 text-xs">🏠</button>
+                            <button className="w-7 h-7 bg-black/60 border border-gray-700 rounded-full flex items-center justify-center text-gray-300 text-xs">+</button>
+                            <button className="w-7 h-7 bg-black/60 border border-gray-700 rounded-md flex items-center justify-center text-gray-300 text-xs ml-2">🎴</button>
                         </div>
                     </div>
 
-                    <div className="flex-1 relative flex items-center justify-center mt-10 p-4">
-                        <div className="w-full h-[60%] max-h-[400px] poker-table-flat flex flex-col items-center justify-center relative">
-                            <div className="text-emerald-900/40 font-bold text-3xl font-serif italic absolute z-0 pointer-events-none tracking-widest">
-                                POKER PRO
+                    {/* 桌面区域 */}
+                    <div className="flex-1 relative flex items-center justify-center pt-10 pb-20">
+                        <div className="poker-table-vertical flex flex-col items-center justify-center relative mt-4">
+                            
+                            {/* 中央桌面信息 */}
+                            <div className="z-10 flex flex-col items-center text-center -mt-12">
+                                <div className="text-gray-400 text-[10px] mb-1 opacity-70">Hold'em, $0.01 / $0.02</div>
+                                <div className="text-gray-300 text-xs">Total Pot</div>
+                                <div className="bg-black/80 text-yellow-400 px-4 py-0.5 rounded-full text-sm font-bold mb-8 border border-yellow-900/50 shadow-md">
+                                    {pot}
+                                </div>
+
+                                {/* 锦标赛信息 */}
+                                <div className="flex text-[10px] text-gray-400 opacity-60">
+                                    <div className="text-right pr-2 border-r border-gray-600 space-y-0.5">
+                                        <div>Total Prize</div>
+                                        <div>Prizes Remaining</div>
+                                        <div>My Points</div>
+                                        <div>My Prize</div>
+                                    </div>
+                                    <div className="text-left pl-2 text-gray-300 space-y-0.5">
+                                        <div>US$39,960</div>
+                                        <div>997</div>
+                                        <div>- (-)</div>
+                                        <div>-</div>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="z-10 flex flex-col items-center">
-                                <div className="bg-black/60 text-emerald-400 px-4 py-1 rounded-full text-sm font-bold mb-3 border border-emerald-900 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                                    POT: {pot}
-                                </div>
-                                <div className="flex gap-1 h-14">
-                                    {communityCards.map((c, i) => (
-                                        <div key={i} className={`card w-10 text-sm ${c.c}`}>{c.val}</div>
-                                    ))}
-                                    {Array.from({length: 5 - communityCards.length}).map((_, i) => (
-                                        <div key={`empty-${i}`} className="w-10 h-14 border border-white/10 rounded-md bg-black/20"></div>
-                                    ))}
-                                </div>
-                            </div>
-
+                            {/* 玩家座位 */}
                             {players.map((p) => (
                                 <Seat 
                                     key={p.id} 
                                     player={p} 
-                                    onClick={() => handleAvatarClick(p)} 
+                                    onClick={() => {}} 
                                     showCards={gameState !== 'waiting' && p.isHero}
                                 />
                             ))}
                         </div>
                     </div>
 
-                    <div className="absolute top-20 right-4 z-20">
-                        <button onClick={simulateDeal} className="bg-yellow-600 text-white px-3 py-1 text-xs rounded shadow">
-                            模拟流程 ({gameState})
-                        </button>
-                    </div>
-
-                    <div className="h-40 bg-gray-900 border-t border-gray-800 rounded-t-2xl p-3 flex flex-col justify-end pb-safe relative z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
-                        <div className="absolute top-[-20px] left-4 flex gap-2">
-                            <button className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-xl shadow-lg border border-gray-700">💬</button>
-                            <button className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-xl shadow-lg border border-gray-700">😀</button>
-                        </div>
-                        <div className="absolute top-[-20px] right-4 flex gap-2">
-                            <button className="h-10 px-3 bg-gray-800 rounded-full flex items-center justify-center text-xs text-gray-300 shadow-lg border border-gray-700 gap-1">
-                                ⏳ 延时
-                            </button>
-                        </div>
-
-                        {showAction ? (
-                            <>
-                                <div className="flex items-center gap-3 mb-3 mt-4 px-2">
-                                    <div className="bg-gray-800 text-white px-3 py-1 rounded text-sm font-mono border border-gray-700">{betSlider}</div>
-                                    <input 
-                                        type="range" min="20" max="10000" step="10" 
-                                        value={betSlider} onChange={(e)=>setBetSlider(e.target.value)} 
-                                        className="flex-1"
-                                    />
-                                    <button className="bg-gray-700 text-white px-3 py-1 rounded text-xs">All-in</button>
+                    {/* 底部与右侧操作区 */}
+                    {showAction && (
+                        <>
+                            {/* 右侧垂直快捷加注按钮 */}
+                            <div className="absolute bottom-20 right-2 flex flex-col gap-1 w-[100px] z-30">
+                                <div className="action-btn-stacked flex flex-col p-1.5 cursor-pointer active:scale-95">
+                                    <div className="flex justify-between text-[9px] text-gray-400 px-1"><span>Pot</span><span>Raise</span></div>
+                                    <div className="text-center text-yellow-400 font-bold text-sm">$0.06</div>
                                 </div>
-                                <div className="flex gap-2 h-14">
-                                    <button onClick={()=>setShowAction(false)} className="flex-1 bg-gradient-to-b from-red-500 to-red-700 text-white font-bold rounded-lg shadow-lg active:scale-95 flex flex-col items-center justify-center leading-tight">
-                                        <span className="text-lg">弃牌</span>
-                                        <span className="text-[10px] text-red-200">Fold</span>
-                                    </button>
-                                    <button onClick={()=>setShowAction(false)} className="flex-1 bg-gradient-to-b from-blue-500 to-blue-700 text-white font-bold rounded-lg shadow-lg active:scale-95 flex flex-col items-center justify-center leading-tight">
-                                        <span className="text-lg">跟注</span>
-                                        <span className="text-[10px] text-blue-200">Call 200</span>
-                                    </button>
-                                    <button onClick={()=>setShowAction(false)} className="flex-1 bg-gradient-to-b from-emerald-500 to-emerald-700 text-white font-bold rounded-lg shadow-lg active:scale-95 flex flex-col items-center justify-center leading-tight">
-                                        <span className="text-lg">加注</span>
-                                        <span className="text-[10px] text-emerald-200">Raise to {betSlider}</span>
-                                    </button>
+                                <div className="action-btn-stacked flex flex-col p-1.5 cursor-pointer active:scale-95">
+                                    <div className="flex justify-between text-[9px] text-gray-400 px-1"><span>4BB</span><span>Raise</span></div>
+                                    <div className="text-center text-yellow-400 font-bold text-sm">$0.08</div>
                                 </div>
-                            </>
-                        ) : (
-                            <div className="h-14 flex items-center justify-center text-gray-500 text-sm italic">
-                                等待其他玩家行动...
-                            </div>
-                        )}
-                    </div>
-
-                    {showProfileModal && selectedPlayer && (
-                        <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowProfileModal(false)}>
-                            <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
-                                <div className="p-4 flex items-center gap-4 bg-gray-800">
-                                    <img src={selectedPlayer.avatar} className="w-16 h-16 rounded-full border-2 border-gray-600 bg-gray-700" />
-                                    <div>
-                                        <h3 className="text-white font-bold text-lg">{selectedPlayer.name}</h3>
-                                        <p className="text-emerald-400 text-sm mt-1">筹码: {selectedPlayer.stack}</p>
-                                    </div>
+                                <div className="action-btn-stacked flex flex-col p-1.5 cursor-pointer active:scale-95">
+                                    <div className="flex justify-between text-[9px] text-gray-400 px-1"><span>3BB</span><span>Raise</span></div>
+                                    <div className="text-center text-yellow-400 font-bold text-sm">$0.06</div>
                                 </div>
-                                <div className="p-4 border-b border-gray-800">
-                                    <div className="text-gray-400 text-xs mb-2">实时统计 (VPIP / PFR / 3Bet)</div>
-                                    <div className="flex gap-4 text-white font-mono">
-                                        <span>25%</span>
-                                        <span>18%</span>
-                                        <span>5%</span>
-                                    </div>
-                                </div>
-                                <div className="p-4">
-                                    <div className="text-gray-400 text-xs mb-3">互动道具 (消耗 1 💎)</div>
-                                    <div className="flex justify-around">
-                                        <button onClick={()=>setShowProfileModal(false)} className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center text-2xl hover:bg-gray-700 border border-gray-700">🍅</button>
-                                        <button onClick={()=>setShowProfileModal(false)} className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center text-2xl hover:bg-gray-700 border border-gray-700">🌹</button>
-                                        <button onClick={()=>setShowProfileModal(false)} className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center text-2xl hover:bg-gray-700 border border-gray-700">🍺</button>
-                                        <button onClick={()=>setShowProfileModal(false)} className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center text-2xl hover:bg-gray-700 border border-gray-700">💣</button>
-                                    </div>
+                                <div className="action-btn-stacked flex flex-col p-1.5 cursor-pointer active:scale-95">
+                                    <div className="flex justify-between text-[9px] text-gray-400 px-1"><span>2BB</span><span>Raise</span></div>
+                                    <div className="text-center text-yellow-400 font-bold text-sm">$0.04</div>
                                 </div>
                             </div>
-                        </div>
+
+                            {/* 中下部辅助图标按钮 */}
+                            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-3 z-30">
+                                <button className="w-9 h-9 bg-[#1a1a1a] border border-gray-700 rounded-full flex items-center justify-center text-gray-400 shadow-lg">
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                                </button>
+                                <button className="w-9 h-9 bg-[#1a1a1a] border border-gray-700 rounded-full flex items-center justify-center text-yellow-500 shadow-lg">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                                </button>
+                            </div>
+
+                            {/* 底部主干操作按钮 */}
+                            <div className="absolute bottom-2 left-2 right-2 flex gap-2 z-30 h-14">
+                                <button className="flex-[1.2] action-btn-stacked text-sm font-bold active:scale-95">Check / Fold</button>
+                                <button className="flex-1 action-btn-stacked text-sm font-bold active:scale-95">Check</button>
+                                <button className="flex-[1.2] action-btn-stacked text-sm font-bold flex flex-col items-center justify-center active:scale-95 border-yellow-600/30">
+                                    <span className="text-gray-400 text-[10px]">Raise</span>
+                                    <span className="text-yellow-400 font-bold">$0.04</span>
+                                </button>
+                            </div>
+                        </>
                     )}
                 </div>
             );
         }
 
         function Seat({ player, onClick, showCards }) {
+            // 针对竖向椭圆桌的坐标定位
             const posStyles = {
-                'bottom': { bottom: '-20px', left: '50%', transform: 'translateX(-50%)' },
-                'left': { left: '-20px', top: '50%', transform: 'translateY(-50%)' },
-                'right': { right: '-20px', top: '50%', transform: 'translateY(-50%)' },
-                'top-left': { top: '10%', left: '10%' },
-                'top-right': { top: '10%', right: '10%' },
+                'bottom': { bottom: '-3%', left: '50%', transform: 'translateX(-50%)' },
+                'top': { top: '-2%', left: '50%', transform: 'translateX(-50%)' },
+                'left': { left: '-3%', top: '40%', transform: 'translateY(-50%)' },
+                'right': { right: '-3%', top: '40%', transform: 'translateY(-50%)' },
+                'top-left': { top: '12%', left: '-1%' },
+                'top-right': { top: '12%', right: '-1%' },
+            };
+
+            // 动态下注筹码位置 (保持在玩家和底池之间)
+            const getBetPosition = (pos) => {
+                switch(pos) {
+                    case 'bottom': return '-top-12 left-1/2 -translate-x-1/2';
+                    case 'top': return '-bottom-12 left-1/2 -translate-x-1/2';
+                    case 'left': return 'top-1/2 -translate-y-1/2 -right-14';
+                    case 'right': return 'top-1/2 -translate-y-1/2 -left-14';
+                    case 'top-left': return '-bottom-4 -right-12';
+                    case 'top-right': return '-bottom-4 -left-12';
+                    default: return '-top-10';
+                }
             };
 
             return (
                 <div className="absolute z-20 flex flex-col items-center" style={posStyles[player.pos]}>
-                    {player.action && !player.isHero && (
-                        <div className="bg-gray-900/80 text-white text-[10px] px-2 py-0.5 rounded border border-gray-700 mb-1 backdrop-blur-sm shadow-lg whitespace-nowrap">
-                            {player.action}
-                        </div>
-                    )}
                     
-                    {showCards && (
-                        <div className="flex gap-1 mb-1 absolute -top-8 rotate-[-5deg]">
-                            <div className="card w-8 h-12 text-sm black border border-gray-300">{player.cards[0]}</div>
-                            <div className="card w-8 h-12 text-sm red border border-gray-300 translate-y-1 rotate-[10deg]">{player.cards[1]}</div>
+                    {/* 下注筹码与金额 */}
+                    {player.bet && (
+                        <div className={`absolute flex flex-col items-center z-10 ${getBetPosition(player.pos)}`}>
+                            <div className="w-3.5 h-3.5 bg-yellow-600 rounded-full border border-yellow-300 shadow-[0_2px_4px_rgba(0,0,0,0.5)] mb-0.5"></div>
+                            <div className="bg-black/80 text-white text-[10px] px-1.5 rounded-sm font-bold font-mono tracking-tighter shadow-md whitespace-nowrap">{player.bet}</div>
                         </div>
                     )}
 
-                    {!showCards && !player.folded && player.pos !== 'bottom' && (
-                        <div className="flex gap-1 mb-1 absolute -top-4 opacity-80">
-                            <div className="w-4 h-6 bg-red-800 border border-white/20 rounded-sm"></div>
-                            <div className="w-4 h-6 bg-red-800 border border-white/20 rounded-sm rotate-6"></div>
+                    {/* Hero 视角巨大底牌 */}
+                    {showCards && player.isHero && (
+                        <div className="absolute -top-16 -left-14 flex gap-0 transform -rotate-6 scale-[1.5] origin-bottom-left z-30 drop-shadow-2xl pointer-events-none">
+                            <div className="card w-8 h-12 text-[10px] text-black border border-gray-300 shadow-md bg-white flex items-start justify-start p-1 leading-none">
+                                <div className="flex flex-col items-center"><span className="font-bold text-sm">K</span><span>♣</span></div>
+                            </div>
+                            <div className="card w-8 h-12 text-[10px] text-red-600 border border-gray-300 shadow-md bg-white flex items-start justify-start p-1 leading-none translate-y-2 rotate-12">
+                                <div className="flex flex-col items-center"><span className="font-bold text-sm">3</span><span>♥</span></div>
+                            </div>
                         </div>
                     )}
 
-                    <div onClick={onClick} className={`relative cursor-pointer ${player.folded ? 'opacity-50 grayscale' : ''}`}>
-                        <div className={`w-12 h-12 rounded-full border-2 overflow-hidden bg-gray-800 shadow-xl ${player.isHero ? 'border-emerald-500' : 'border-gray-500'}`}>
-                            <img src={player.avatar} alt={player.name} className="w-full h-full object-cover" />
+                    {/* 其他玩家背面底牌 */}
+                    {!player.isHero && !player.folded && (
+                        <div className={`flex gap-0.5 absolute z-0 ${player.pos === 'top' ? '-bottom-6 left-1/2 -translate-x-1/2' : '-top-6 left-1/2 -translate-x-1/2'}`}>
+                            <div className="w-6 h-8 bg-[#8b1c1c] border border-black/50 rounded-sm shadow-md rotate-[-5deg]"></div>
+                            <div className="w-6 h-8 bg-[#8b1c1c] border border-black/50 rounded-sm shadow-md rotate-[5deg] -ml-2"></div>
                         </div>
-                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/80 border border-gray-600 rounded px-2 py-0.5 min-w-[60px] text-center shadow-lg">
-                            <div className="text-[10px] text-gray-300 truncate max-w-[50px] mx-auto leading-none">{player.name}</div>
-                            <div className="text-xs text-emerald-400 font-bold font-mono leading-none mt-0.5">{player.stack}</div>
+                    )}
+
+                    {/* 庄家位 D 按钮 */}
+                    {player.pos === 'top' && (
+                        <div className="absolute -bottom-2 -left-4 w-4 h-4 bg-yellow-500 rounded-full border border-yellow-200 text-black text-[9px] font-bold flex items-center justify-center shadow-md z-30">D</div>
+                    )}
+
+                    {/* 极简玩家信息牌 (WSOP 风格) */}
+                    <div onClick={onClick} className={`relative cursor-pointer z-20 ${player.folded ? 'opacity-50 grayscale' : ''}`}>
+                        <div className={`bg-[#1a1a1a] border-t-2 ${player.isHero ? 'border-blue-500' : 'border-red-600'} rounded-md w-[72px] flex flex-col items-center shadow-lg relative overflow-hidden`}>
+                            {/* 顶部姓名 (去除国旗) */}
+                            <div className="w-full bg-black flex items-center justify-center px-1.5 h-4">
+                                <span className="text-[8px] text-gray-300 truncate max-w-[60px]">{player.name}</span>
+                            </div>
+                            {/* 筹码量 */}
+                            <div className="py-1 w-full text-center bg-gradient-to-b from-gray-800 to-gray-900">
+                                <div className={`text-[11px] font-bold font-mono leading-none ${player.isHero ? 'text-blue-300' : 'text-gray-300'}`}>{player.stack}</div>
+                            </div>
+                            {/* Hero 的进度条 */}
+                            {player.isHero && (
+                                <div className="w-full h-[3px] bg-gray-800">
+                                    <div className="h-full bg-green-500 w-[70%]"></div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
