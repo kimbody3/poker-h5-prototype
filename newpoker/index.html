@@ -2,926 +2,1864 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poker Pro - 德扑竞技平台原型 V2</title>
-    <!-- 引入 React 和 ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- 引入 Babel 用于浏览器内编译 JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- 引入 Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PokerAce - 德州扑克社交APP原型</title>
+    <!-- 引入 Tailwind CSS 进行现代化界面排版 -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 FontAwesome 图标库，用于游戏/社交图标展示 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter 确保极致字形清晰度 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    colors: {
+                        poker: {
+                            dark: '#0B0F19',      // 极深灰蓝色背景
+                            card: '#162033',      // 卡片/功能区浅色
+                            gold: '#D4AF37',      // 金色高亮
+                            green: '#0D5C3A',     // 牌桌深绿经典色
+                            felt: '#137547',      // 牌桌亮绿绒面
+                            wood: '#2E1A08',      // 拟真木纹/皮质桌框
+                            accent: '#10B981',    // 亮绿色主交互
+                            rose: '#F43F5E'       // 玫瑰红色警告/弃牌
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* 隐藏滚动条但保留滚动功能 */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        body { background-color: #111827; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        
-        /* 移动端容器适配 */
-        .app-container {
-            width: 100vw;
-            height: 100vh;
-            max-width: 480px;
-            margin: 0 auto;
-            background-color: #1f2937;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        /* 隐藏滚动条 */
+        ::-webkit-scrollbar { display: none; }
+        body { -webkit-tap-highlight-color: transparent; font-family: 'Inter', sans-serif; background-color: #030712; }
+        /* 扑克立体拟真阴影 */
+        .poker-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6); }
+        .inner-felt-shadow { box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.7); }
+        /* 卡片旋转动画 */
+        .card-deal-anim { animation: dealCard 0.4s ease-out forwards; }
+        @keyframes dealCard {
+            0% { transform: translateY(-100px) rotate(180deg) scale(0.3); opacity: 0; }
+            100% { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
         }
-
-        /* 扁平化扑克桌样式 (Poker Now 风格) */
-        .poker-table-flat {
-            background: #064e3b; /* 深翡翠绿 */
-            border-radius: 9999px;
-            border: 8px solid #0f766e;
-            position: relative;
-            box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
-        }
-        
-        .card {
-            background: white; color: black; border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            display: flex; justify-content: center; align-items: center;
-            font-weight: bold; font-family: monospace;
-        }
-        .card.red { color: #ef4444; }
-        .card.black { color: #111827; }
-        
-        /* 滑块定制 */
-        input[type=range] {
-            -webkit-appearance: none; width: 100%; background: transparent;
-        }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none; height: 24px; width: 24px;
-            border-radius: 50%; background: #10b981;
-            cursor: pointer; margin-top: -8px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 8px; cursor: pointer;
-            background: #374151; border-radius: 4px;
-        }
-
-        /* 竖版扑克桌样式 (深度写实优化) */
-        .poker-table-vertical {
-            /* 径向渐变模拟灯光打在桌面的光影效果 */
-            background: radial-gradient(ellipse at center, #358245 0%, #1a4f29 100%);
-            /* 减小圆角，让边缘更平直，呈现经典的跑道/长椭圆形 */
-            border-radius: 130px;
-            /* 模拟黑色皮质边缘扶手 */
-            border: 16px solid #181818;
-            /* 多重阴影增加3D立体感：外黑边、皮垫内阴影、桌面暗角、整体落地阴影 */
-            box-shadow: 
-                0 0 0 2px #0a0a0a,
-                inset 0 0 0 5px rgba(0,0,0,0.6), 
-                inset 0 0 40px rgba(0,0,0,0.5), 
-                0 20px 40px rgba(0,0,0,0.8);
-            width: 92%;
-            height: 82%;
-            position: relative;
-        }
-
-        /* 增加牌桌内圈的下注线 (Betting Line) */
-        .poker-table-vertical::after {
-            content: '';
-            position: absolute;
-            top: 35px; bottom: 35px; left: 25px; right: 25px;
-            border: 2px solid rgba(0, 0, 0, 0.15);
-            border-radius: 100px;
-            pointer-events: none;
-        }
-        
-        /* 堆叠操作按钮样式 */
-        .action-btn-stacked {
-            background: linear-gradient(to bottom, #333333, #1a1a1a);
-            border: 1px solid #404040;
-            color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+        /* 筹码飞行动画 */
+        .chip-fly { animation: flyToPot 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+        @keyframes flyToPot {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0.4); opacity: 0; }
         }
     </style>
 </head>
-<body>
-    <div id="root"></div>
+<body class="flex justify-center items-center min-h-screen text-gray-100 overflow-x-hidden p-2 md:p-6 select-none">
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-
-        // --- 全局图标组件 ---
-        const Icons = {
-            Message: () => <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" /></svg>,
-            Club: () => <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>,
-            Play: () => <svg fill="currentColor" viewBox="0 0 24 24" className="w-8 h-8"><path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm14.024-.983a1.125 1.125 0 010 1.966l-5.603 3.113A1.125 1.125 0 019 15.113V8.887c0-.857.921-1.4 1.671-.983l5.603 3.113z" clipRule="evenodd" /></svg>,
-            Trophy: () => <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0" /></svg>,
-            User: () => <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>,
-            ChevronLeft: () => <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>,
-            Settings: () => <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
-            Bell: () => <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>,
-            Coin: () => <div className="w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center text-xs font-bold text-yellow-900 border border-yellow-300">C</div>,
-            Diamond: () => <div className="w-5 h-5 flex items-center justify-center text-blue-400 text-sm">💎</div>,
-        };
-
-        // --- 主应用组件 ---
-        function App() {
-            // 状态管理：视图导航
-            const [view, setView] = useState('login'); // login, register, main, clubDetail, gameRoom, createGame
-            const [activeTab, setActiveTab] = useState('home'); // messages, clubs, home, tournaments, profile
+<!-- PC端设备装饰外壳（移动端自适应全屏） -->
+<div class="flex flex-col lg:flex-row gap-6 max-w-6xl w-full justify-center items-stretch h-full">
+    
+    <!-- 左侧：开发、美术与产品演示面板 (仅在桌面端显示，辅助评审) -->
+    <div class="hidden lg:flex flex-col w-80 bg-slate-900 border border-slate-800 rounded-3xl p-5 justify-between shadow-2xl">
+        <div>
+            <div class="flex items-center gap-3 mb-4">
+                <span class="p-2 bg-poker-accent/20 rounded-xl text-poker-accent text-xl"><i class="fa-solid fa-layer-group"></i></span>
+                <div>
+                    <h1 class="font-extrabold text-lg text-white">PokerAce 原型</h1>
+                    <p class="text-xs text-slate-400">产品 / 美术 / 研发 评审专用版</p>
+                </div>
+            </div>
             
-            // 状态管理：用户数据模拟 (代理系统)
-            const [user, setUser] = useState({
-                id: '10086',
-                name: '德扑王',
-                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-                diamonds: 1500,
-                coins: 50000,
-                agencyLevel: 2, 
-                boundClubId: 'CLUB_888',
-                myPromoCode: 'PROMO_999'
-            });
+            <p class="text-xs text-slate-300 leading-relaxed bg-slate-950 p-3 rounded-xl border border-slate-800 mb-4">
+                本原型基于 <strong>H5 跨端架构</strong> 设计，深度还原 Wepoker/Lepoker 经典界面。可通过右侧虚拟移动端自由测试登录注册、加入俱乐部、牌桌创建及全动态打牌模拟器。
+            </p>
 
-            const renderView = () => {
-                switch(view) {
-                    case 'login': return <ScreenLogin setView={setView} />;
-                    case 'register': return <ScreenRegister setView={setView} />;
-                    case 'main': return <ScreenMain setView={setView} activeTab={activeTab} setActiveTab={setActiveTab} user={user} />;
-                    case 'clubDetail': return <ScreenClubDetail setView={setView} />;
-                    case 'createGame': return <ScreenCreateGame setView={setView} />;
-                    case 'gameRoom': return <ScreenGameRoom setView={setView} user={user} />;
-                    default: return <ScreenLogin setView={setView} />;
-                }
-            };
+            <div class="space-y-2">
+                <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">快捷测试控制台</h2>
+                <button onclick="changeScreen('screen-game')" class="w-full flex items-center justify-between px-3 py-2 bg-poker-accent/15 hover:bg-poker-accent/25 text-poker-accent rounded-xl text-xs transition duration-200 font-medium">
+                    <span>⚡ 一键进入竖版德州牌桌</span>
+                    <i class="fa-solid fa-circle-play"></i>
+                </button>
+                <button onclick="changeScreen('screen-main'); changeTab('clubs')" class="w-full flex items-center justify-between px-3 py-2 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 rounded-xl text-xs transition duration-200 font-medium">
+                    <span>♣️ 快速跳转俱乐部标签</span>
+                    <i class="fa-solid fa-users"></i>
+                </button>
+                <button onclick="resetMockState()" class="w-full flex items-center justify-between px-3 py-2 bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 rounded-xl text-xs transition duration-200 font-medium">
+                    <span>🔄 重置所有仿真状态数据</span>
+                    <i class="fa-solid fa-arrow-rotate-left"></i>
+                </button>
+            </div>
 
-            return (
-                <div className="app-container">
-                    {renderView()}
+            <div class="mt-6 border-t border-slate-800 pt-4 space-y-3">
+                <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">交互与美术规范</h3>
+                <div class="flex items-center gap-2 text-xs text-slate-300">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>适配 WhatsApp / TG 快速登录</span>
                 </div>
-            );
-        }
-
-        /* =========================================================
-           1. 登录 & 注册模块
-           ========================================================= */
-        function ScreenLogin({ setView }) {
-            return (
-                <div className="flex-1 flex flex-col items-center justify-center p-6 bg-gray-900">
-                    <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg mb-8">
-                        <Icons.Play />
-                    </div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Poker Pro</h1>
-                    <p className="text-gray-400 mb-10 text-sm">专业德州扑克竞技与俱乐部平台</p>
-                    
-                    <div className="w-full space-y-4">
-                        <input type="text" placeholder="手机号 / 邮箱" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500" />
-                        <input type="password" placeholder="密码" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500" />
-                        
-                        <div className="flex justify-between text-sm">
-                            <span className="text-emerald-500 cursor-pointer">找回密码?</span>
-                        </div>
-                        
-                        <button onClick={() => setView('main')} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-4 shadow-lg shadow-emerald-600/20 transition-all">
-                            登 录
-                        </button>
-                        
-                        <div className="text-center mt-6">
-                            <span className="text-gray-400">还没有账号? </span>
-                            <span onClick={() => setView('register')} className="text-emerald-500 font-bold cursor-pointer">立即注册</span>
-                        </div>
-                    </div>
+                <div class="flex items-center gap-2 text-xs text-slate-300">
+                    <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+                    <span>WePoker 同款积分制 (无货币带出)</span>
                 </div>
-            );
-        }
-
-        function ScreenRegister({ setView }) {
-            return (
-                <div className="flex-1 flex flex-col p-6 bg-gray-900">
-                    <button onClick={() => setView('login')} className="text-gray-400 mt-4 mb-6 flex items-center">
-                        <Icons.ChevronLeft /> 返回
-                    </button>
-                    <h2 className="text-2xl font-bold text-white mb-6">注册账号</h2>
-                    
-                    <div className="w-full space-y-4">
-                        <div className="flex gap-2">
-                            <button className="flex-1 bg-gray-800 border border-emerald-500 text-emerald-500 py-2 rounded-lg font-bold">手机注册</button>
-                            <button className="flex-1 bg-gray-800 border border-gray-700 text-gray-400 py-2 rounded-lg">邮箱注册</button>
-                        </div>
-                        
-                        <input type="text" placeholder="请输入手机号" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500" />
-                        <div className="flex gap-2">
-                            <input type="text" placeholder="验证码" className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500" />
-                            <button className="bg-gray-700 text-white px-4 rounded-lg text-sm whitespace-nowrap">获取验证码</button>
-                        </div>
-                        <input type="password" placeholder="设置密码" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500" />
-                        
-                        <div className="pt-4">
-                            <label className="text-gray-400 text-xs mb-1 block">推广码 / 邀请码 (选填)</label>
-                            <input type="text" placeholder="输入俱乐部或代理推广码" className="w-full bg-gray-800 border border-dashed border-emerald-500/50 rounded-lg px-4 py-3 text-emerald-400 focus:outline-none focus:border-emerald-500 placeholder-gray-600" />
-                            <p className="text-xs text-gray-500 mt-2">填写游戏币俱乐部推广码，即可成为该俱乐部二级用户并开启专属代理权限。</p>
-                        </div>
-                        
-                        <button onClick={() => setView('main')} className="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg mt-6 shadow-lg">
-                            注 册 并 登 录
-                        </button>
-                    </div>
+                <div class="flex items-center gap-2 text-xs text-slate-300">
+                    <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                    <span>游戏内互动道具 (砸鸡蛋/砸炸弹)</span>
                 </div>
-            );
-        }
+            </div>
+        </div>
 
-        /* =========================================================
-           2. 主界面大厅
-           ========================================================= */
-        function ScreenMain({ setView, activeTab, setActiveTab, user }) {
-            return (
-                <div className="flex-1 flex flex-col bg-gray-900">
-                    {/* 顶部状态栏 */}
-                    <div className="flex justify-between items-center p-4 bg-gray-800/50 backdrop-blur-md sticky top-0 z-10">
-                        <div className="flex items-center gap-3">
-                            <img src={user.avatar} className="w-10 h-10 rounded-full border-2 border-emerald-500" />
-                            <div>
-                                <h3 className="text-sm font-bold text-white">{user.name}</h3>
-                                <div className="flex gap-2 text-xs">
-                                    <span className="flex items-center gap-1"><Icons.Coin/> {user.coins}</span>
-                                    <span className="flex items-center gap-1"><Icons.Diamond/> {user.diamonds}</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        {/* 右侧操作区：设置 & 动态消息铃铛 */}
-                        <div className="flex items-center gap-2">
-                            {/* 当处于俱乐部、首页、锦标赛时，显示消息红点铃铛 */}
-                            {['clubs', 'home', 'tournaments'].includes(activeTab) && (
-                                <button onClick={() => setActiveTab('messages')} className="relative p-2 text-gray-400 hover:text-white transition-colors">
-                                    <Icons.Bell />
-                                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-gray-900 shadow-sm animate-pulse"></span>
-                                </button>
-                            )}
-                            <button className="p-2 text-gray-400 hover:text-white transition-colors"><Icons.Settings /></button>
-                        </div>
-                    </div>
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-center">
+            <p class="text-[10px] text-slate-500">双指轻扫或使用操作控件可无感切换各模块。底部包含 3D 卡牌立体渲染层。</p>
+        </div>
+    </div>
 
-                    {/* 主内容滚动区 */}
-                    <div className="flex-1 overflow-y-auto no-scrollbar relative">
-                        {activeTab === 'messages' && <TabMessages />}
-                        {activeTab === 'clubs' && <TabClubs setView={setView} />}
-                        {activeTab === 'home' && <TabHome setView={setView} />}
-                        {activeTab === 'tournaments' && <TabTournaments />}
-                        {activeTab === 'profile' && <TabProfile user={user} />}
-                    </div>
+    <!-- 移动端框架容器 -->
+    <div class="relative w-full max-w-[430px] h-[880px] md:h-[900px] bg-poker-dark rounded-[40px] border-4 border-slate-800 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden mx-auto">
+        <!-- 手机听筒和前置镜头刘海 (美化 H5 原型) -->
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-6 bg-slate-800 rounded-b-2xl z-50 flex items-center justify-center gap-2">
+            <span class="w-12 h-1 bg-slate-900 rounded-full"></span>
+            <span class="w-3 h-3 bg-slate-900 rounded-full"></span>
+        </div>
 
-                    {/* 底部5大标签导航 */}
-                    <div className="h-16 bg-gray-800 border-t border-gray-700 flex justify-around items-center px-2 pb-safe">
-                        <NavBtn icon={<Icons.Message />} label="消息" active={activeTab==='messages'} onClick={()=>setActiveTab('messages')} />
-                        <NavBtn icon={<Icons.Club />} label="俱乐部" active={activeTab==='clubs'} onClick={()=>setActiveTab('clubs')} />
-                        
-                        {/* 首页中心大按钮 */}
-                        <div className="relative -top-5" onClick={()=>setActiveTab('home')}>
-                            <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg cursor-pointer transition-transform hover:scale-105 ${activeTab === 'home' ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-gray-700'}`}>
-                                <div className="text-white"><Icons.Play /></div>
-                            </div>
-                        </div>
-                        
-                        <NavBtn icon={<Icons.Trophy />} label="锦标赛" active={activeTab==='tournaments'} onClick={()=>setActiveTab('tournaments')} />
-                        <NavBtn icon={<Icons.User />} label="我的" active={activeTab==='profile'} onClick={()=>setActiveTab('profile')} />
+        <!-- 内部可交互流式页面容器 -->
+        <div class="flex-1 w-full h-full relative overflow-hidden flex flex-col pt-6">
+
+            <!-- LOGIN SCREEN -->
+            <div id="screen-login" class="absolute inset-0 bg-poker-dark flex flex-col justify-between p-6 pt-12 z-40 transition-transform duration-300">
+                <div class="flex flex-col items-center mt-6">
+                    <!-- LOGO 占位符与发光特效 -->
+                    <div class="relative w-24 h-24 bg-gradient-to-tr from-poker-accent to-emerald-400 rounded-3xl flex items-center justify-center shadow-lg shadow-poker-accent/20 mb-4 overflow-hidden">
+                        <i class="fa-solid fa-clover text-white text-5xl"></i>
+                        <div class="absolute inset-0 bg-white/10 skew-x-12 translate-x-10 animate-pulse"></div>
                     </div>
+                    <h2 class="text-2xl font-black tracking-widest text-white">POKER ACE</h2>
+                    <p class="text-xs text-emerald-500 tracking-widest uppercase mt-1">德扑社交竞技娱乐平台</p>
                 </div>
-            );
-        }
 
-        function NavBtn({ icon, label, active, onClick }) {
-            return (
-                <div onClick={onClick} className={`flex flex-col items-center justify-center w-16 cursor-pointer transition-colors ${active ? 'text-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}>
-                    <div className="mb-1">{icon}</div>
-                    <span className="text-[10px] font-medium">{label}</span>
-                </div>
-            );
-        }
-
-        /* 标签1: 消息 (新增二级选项卡和好友消息) */
-        function TabMessages() {
-            const [msgTab, setMsgTab] = useState('friends'); // 'friends', 'system', 'contacts'
-
-            return (
-                <div className="p-4 space-y-4">
-                    {/* 广告活动轮播图模拟 */}
-                    <div className="w-full h-32 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg relative overflow-hidden shrink-0">
-                        <div className="absolute inset-0 bg-black/20"></div>
-                        <h2 className="text-white font-bold text-xl relative z-10 italic">WPT 亚洲线上巡回赛 即将开启!</h2>
-                    </div>
-                    
-                    {/* 二级选项卡：好友、系统、通讯录 */}
-                    <div className="flex bg-gray-800 rounded-lg p-1">
-                        <button onClick={()=>setMsgTab('friends')} className={`flex-1 py-2 text-sm font-bold rounded-md transition-colors ${msgTab === 'friends' ? 'bg-gray-600 text-white shadow' : 'text-gray-400'}`}>好友消息</button>
-                        <button onClick={()=>setMsgTab('system')} className={`flex-1 py-2 text-sm font-bold rounded-md transition-colors ${msgTab === 'system' ? 'bg-gray-600 text-white shadow relative' : 'text-gray-400'}`}>
-                            系统消息
-                            {/* 红点提示 */}
-                            <span className="absolute top-2 right-4 w-2 h-2 bg-red-500 rounded-full"></span>
-                        </button>
-                        <button onClick={()=>setMsgTab('contacts')} className={`flex-1 py-2 text-sm font-bold rounded-md transition-colors ${msgTab === 'contacts' ? 'bg-gray-600 text-white shadow' : 'text-gray-400'}`}>通讯录</button>
-                    </div>
-
-                    {/* 消息列表区域 */}
-                    <div className="bg-gray-800 rounded-xl overflow-hidden min-h-[300px]">
-                        {msgTab === 'friends' && (
-                            <div>
-                                <ChatListItem name="Shark99 (牌友)" msg="晚上8点我们俱乐部开桌，速来！" time="18:30" avatar="https://api.dicebear.com/7.x/avataaars/svg?seed=Shark" unread={2} />
-                                <ChatListItem name="德州校长" msg="刚刚那把牌你弃的太早了..." time="昨天" avatar="https://api.dicebear.com/7.x/avataaars/svg?seed=Pro" />
-                                <ChatListItem name="FishBoy" msg="明天借我点钻石买互动道具😂" time="周二" avatar="https://api.dicebear.com/7.x/avataaars/svg?seed=Fish" />
-                            </div>
-                        )}
-
-                        {msgTab === 'system' && (
-                            <div>
-                                <MessageItem title="维护公告" desc="服务器将于本周五凌晨2点进行短时升级..." time="10分钟前" unread />
-                                <MessageItem title="奖励到账" desc="恭喜您在昨日SNG获得第1名，奖励已发放。" time="昨天" />
-                                <MessageItem title="审核通过" desc="您申请加入的【猎人俱乐部】已通过审核。" time="3天前" />
-                            </div>
-                        )}
-
-                        {msgTab === 'contacts' && (
-                            <div className="flex flex-col items-center justify-center p-10 text-gray-500">
-                                <div className="text-4xl mb-3">📇</div>
-                                <p className="text-sm">暂无新联系人</p>
-                                <button className="mt-4 border border-gray-600 px-4 py-1.5 rounded-full text-xs text-emerald-400">添加好友</button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        }
-
-        function ChatListItem({ name, msg, time, avatar, unread }) {
-            return (
-                <div className="p-4 border-b border-gray-700/50 flex gap-3 active:bg-gray-700 cursor-pointer items-center">
-                    <img src={avatar} alt={name} className="w-12 h-12 rounded-full bg-gray-700 border border-gray-600" />
-                    <div className="flex-1 overflow-hidden">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-white font-medium">{name}</span>
-                            <span className="text-xs text-gray-500">{time}</span>
-                        </div>
-                        <p className="text-sm text-gray-400 truncate">{msg}</p>
-                    </div>
-                    {unread && (
-                        <div className="bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold shadow">
-                            {unread}
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        function MessageItem({ title, desc, time, unread }) {
-            return (
-                <div className="p-4 border-b border-gray-700/50 flex gap-3 active:bg-gray-700 cursor-pointer">
-                    <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${unread ? 'bg-red-500' : 'bg-transparent'}`}></div>
-                    <div className="flex-1">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-white font-medium">{title}</span>
-                            <span className="text-xs text-gray-500">{time}</span>
-                        </div>
-                        <p className="text-sm text-gray-400 line-clamp-1">{desc}</p>
-                    </div>
-                </div>
-            );
-        }
-
-        /* 标签2: 俱乐部 (已更新为并排大按钮 + 积分制描述) */
-        function TabClubs({ setView }) {
-            return (
-                <div className="p-4 h-full flex flex-col">
-                    {/* 创建与加入双按钮 */}
-                    <div className="flex gap-3 mb-4">
-                        <button className="flex-1 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white py-4 rounded-xl font-bold shadow-lg flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
-                            <span className="text-2xl">➕</span>
-                            <span>创建俱乐部</span>
-                        </button>
-                        <button className="flex-1 bg-gradient-to-br from-blue-500 to-blue-700 text-white py-4 rounded-xl font-bold shadow-lg flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
-                            <span className="text-2xl">🔍</span>
-                            <span>加入俱乐部</span>
-                        </button>
-                    </div>
-
-                    {/* WePoker 积分模式说明 */}
-                    <div className="bg-gray-800/50 border border-gray-700 p-3 rounded-lg text-xs text-gray-400 mb-4 leading-relaxed">
-                        <span className="text-emerald-400 font-bold">★ 积分俱乐部模式 (WePoker规则)：</span><br/>
-                        进入俱乐部随时自由带入积分上桌，最高限制由俱乐部管理设定。平台系统仅做战绩记录与战局审核，不提供内置货币交易与带出服务。请在线下或直接通过您的俱乐部管理员进行清算。
-                    </div>
-
-                    <div className="flex justify-between items-end mb-2 px-1">
-                        <h3 className="text-white font-bold text-sm">我的俱乐部</h3>
-                    </div>
-
-                    <div className="space-y-3">
-                        <ClubCard setView={setView} name="皇家同花顺战队" members={1250} tables={8} isManager />
-                        <ClubCard setView={setView} name="北京朝阳德扑联盟" members={340} tables={2} />
-                        <ClubCard setView={setView} name="Shark 职业集训营" members={89} tables={0} />
-                    </div>
-                </div>
-            );
-        }
-
-        function ClubCard({ setView, name, members, tables, isManager }) {
-            return (
-                <div onClick={() => setView('clubDetail')} className="bg-gray-800 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-700 active:scale-95 transition-transform border border-transparent hover:border-gray-600">
-                    <div className="w-14 h-14 bg-gray-900 rounded-lg flex items-center justify-center text-2xl border border-gray-700 shadow-inner">🛡️</div>
-                    <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                            <h3 className="text-white font-bold text-base">{name}</h3>
-                            {isManager && <span className="bg-yellow-500/20 text-yellow-500 text-[10px] px-1.5 py-0.5 rounded border border-yellow-500/30">管理</span>}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1 flex gap-3">
-                            <span>👥 {members} 人</span>
-                            {tables > 0 ? (
-                                <span className="text-emerald-400">🔥 {tables} 桌进行中</span>
-                            ) : (
-                                <span>💤 休息中</span>
-                            )}
-                        </div>
-                    </div>
-                    <Icons.ChevronLeft className="w-5 h-5 text-gray-600 rotate-180" />
-                </div>
-            );
-        }
-
-        /* 标签3: 首页中心 */
-        function TabHome({ setView }) {
-            return (
-                <div className="p-4 space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div onClick={() => setView('createGame')} className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-6 text-center cursor-pointer shadow-lg shadow-emerald-900/50 active:scale-95 transition-transform">
-                            <div className="text-4xl mb-2">➕</div>
-                            <div className="text-white font-bold text-lg">创建牌局</div>
-                            <div className="text-emerald-100 text-xs mt-1">自建好友局</div>
-                        </div>
-                        <div className="bg-gradient-to-br from-blue-500 to-indigo-700 rounded-2xl p-6 text-center cursor-pointer shadow-lg shadow-indigo-900/50 active:scale-95 transition-transform">
-                            <div className="text-4xl mb-2">🔍</div>
-                            <div className="text-white font-bold text-lg">加入牌局</div>
-                            <div className="text-blue-100 text-xs mt-1">输入房间号</div>
+                <!-- 登录输入组 -->
+                <div class="space-y-4 my-auto max-w-sm w-full mx-auto">
+                    <div>
+                        <label class="block text-xs text-slate-400 font-semibold mb-1.5 pl-1">手机号 / 邮箱</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                            <input type="text" id="login-username" placeholder="请输入手机号或邮箱" class="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-poker-accent transition-all placeholder-slate-600">
                         </div>
                     </div>
 
                     <div>
-                        <div className="flex justify-between items-end mb-3 px-1">
-                            <h3 className="text-white font-bold text-lg">进行中的牌局</h3>
-                            <span className="text-xs text-gray-400">共 2 局</span>
+                        <div class="flex justify-between items-center mb-1.5 pl-1">
+                            <label class="block text-xs text-slate-400 font-semibold">密码</label>
+                            <button onclick="changeScreen('screen-forgot')" class="text-xs text-poker-accent hover:underline">忘记密码?</button>
                         </div>
-                        <div className="space-y-3">
-                            <GameCard setView={setView} title="周末狂欢 NLH" blinds="10/20" time="已进行 1:20:00" players="6/8" />
-                            <GameCard setView={setView} title="奥马哈 PLO 测试" blinds="5/10" time="已进行 0:45:00" players="3/6" isOmaha />
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        function GameCard({ setView, title, blinds, time, players, isOmaha }) {
-            return (
-                <div onClick={() => setView('gameRoom')} className="bg-gray-800 border border-gray-700 rounded-xl p-4 relative overflow-hidden cursor-pointer active:bg-gray-700">
-                    <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[10px] px-2 py-1 rounded-bl-lg font-bold">
-                        {isOmaha ? 'OMAHA' : 'NLH'}
-                    </div>
-                    <h4 className="text-white font-bold mb-2 pr-10">{title}</h4>
-                    <div className="flex justify-between text-sm">
-                        <div className="text-emerald-400 font-mono">盲注: {blinds}</div>
-                        <div className="text-gray-400">👫 {players}</div>
-                    </div>
-                    <div className="mt-3 text-xs text-gray-500 flex justify-between items-center">
-                        <span>⏱ {time}</span>
-                        <span className="text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">点击进入 ➡️</span>
-                    </div>
-                </div>
-            );
-        }
-
-        /* 标签4: 锦标赛 MTT */
-        function TabTournaments() {
-            return (
-                <div className="p-4">
-                    <div className="flex space-x-2 overflow-x-auto no-scrollbar mb-4 pb-2">
-                        <span className="px-4 py-1.5 bg-emerald-600 text-white text-sm rounded-full whitespace-nowrap">全部比赛</span>
-                        <span className="px-4 py-1.5 bg-gray-800 text-gray-300 text-sm rounded-full whitespace-nowrap">我报名的</span>
-                        <span className="px-4 py-1.5 bg-gray-800 text-gray-300 text-sm rounded-full whitespace-nowrap">免费赛(Freeroll)</span>
-                    </div>
-                    <div className="space-y-4">
-                        <TourneyCard name="每日大师赛 10W GTD" time="今天 20:00" buyIn="1000 金币" pool="100,000" status="报名中" />
-                        <TourneyCard name="新手福利免费赛" time="今天 22:00" buyIn="免费" pool="5,000" status="迟到报名" />
-                        <TourneyCard name="周末百万保底主赛" time="周六 19:00" buyIn="5000 金币" pool="1,000,000" status="即将开始" />
-                    </div>
-                </div>
-            );
-        }
-
-        function TourneyCard({ name, time, buyIn, pool, status }) {
-            const isReg = status === '报名中';
-            return (
-                <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-                    <div className="flex justify-between items-start mb-2">
-                        <h4 className="text-white font-bold">{name}</h4>
-                        <span className={`text-[10px] px-2 py-0.5 rounded ${isReg ? 'bg-emerald-500/20 text-emerald-400' : 'bg-orange-500/20 text-orange-400'}`}>{status}</span>
-                    </div>
-                    <div className="flex gap-4 text-xs mb-3">
-                        <div className="text-gray-400">报名费: <span className="text-white">{buyIn}</span></div>
-                        <div className="text-gray-400">保底: <span className="text-yellow-400 font-bold">{pool}</span></div>
-                    </div>
-                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-700/50 text-sm">
-                        <span className="text-gray-400">🕒 {time}</span>
-                        <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold">查看详情</button>
-                    </div>
-                </div>
-            );
-        }
-
-        /* 标签5: 我的 (含代理系统) */
-        function TabProfile({ user }) {
-            return (
-                <div className="p-4 space-y-4">
-                    <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-5 rounded-2xl border border-gray-700 shadow-lg">
-                        <div className="text-gray-400 text-sm mb-4">我的资产 (Wallet)</div>
-                        <div className="grid grid-cols-2 gap-4 divide-x divide-gray-700">
-                            <div>
-                                <div className="text-gray-500 text-xs mb-1">游戏币 (可提现)</div>
-                                <div className="text-2xl font-bold text-white flex items-center gap-2"><Icons.Coin/> {user.coins}</div>
-                            </div>
-                            <div className="pl-4">
-                                <div className="text-gray-500 text-xs mb-1">钻石 (开房/道具)</div>
-                                <div className="text-2xl font-bold text-white flex items-center gap-2"><Icons.Diamond/> {user.diamonds}</div>
-                            </div>
-                        </div>
-                        <div className="mt-5 flex gap-3">
-                            <button className="flex-1 bg-emerald-600/20 text-emerald-400 py-2 rounded-lg text-sm font-bold border border-emerald-600/30">充值钻石</button>
-                            <button className="flex-1 bg-blue-600/20 text-blue-400 py-2 rounded-lg text-sm font-bold border border-blue-600/30">兑换金币</button>
+                        <div class="relative">
+                            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                            <input type="password" id="login-password" placeholder="请输入登录密码" class="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-poker-accent transition-all placeholder-slate-600">
                         </div>
                     </div>
 
-                    <div className="bg-indigo-900/30 border border-indigo-500/30 rounded-xl p-4 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[10px] px-2 py-1 rounded-bl-lg">推广系统</div>
-                        <h3 className="text-white font-bold text-sm mb-3 flex items-center gap-2">🤝 代理与推广中心</h3>
-                        
-                        <div className="bg-gray-900/50 rounded-lg p-3 text-xs mb-3">
-                            <div className="flex justify-between mb-1">
-                                <span className="text-gray-400">当前身份:</span>
-                                <span className="text-emerald-400 font-bold">二级推广代理 (已绑定俱乐部)</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-400">所属上级:</span>
-                                <span className="text-white">俱乐部 ID: {user.boundClubId}</span>
+                    <button onclick="handleLogin()" class="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-poker-accent hover:opacity-90 active:scale-98 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-900/40 transition duration-150 mt-2">
+                        立即登录
+                    </button>
+                    
+                    <div class="text-center mt-2">
+                        <span class="text-xs text-slate-500">没有账号？</span>
+                        <button onclick="changeScreen('screen-register')" class="text-xs text-poker-accent font-bold hover:underline pl-1">立即注册</button>
+                    </div>
+                </div>
+
+                <!-- 社交平台多端接入演示 (WhatsApp / Telegram) -->
+                <div class="border-t border-slate-900 pt-6 text-center">
+                    <p class="text-xs text-slate-500 mb-3">支持社交平台一键快速登录</p>
+                    <div class="flex justify-center gap-4">
+                        <button onclick="simulateSocialLogin('WhatsApp')" class="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center hover:bg-emerald-900/30 transition text-emerald-500 text-xl">
+                            <i class="fa-brands fa-whatsapp"></i>
+                        </button>
+                        <button onclick="simulateSocialLogin('Telegram')" class="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center hover:bg-sky-900/30 transition text-sky-400 text-xl">
+                            <i class="fa-brands fa-telegram"></i>
+                        </button>
+                        <button onclick="simulateSocialLogin('Line')" class="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center hover:bg-green-950/30 transition text-green-400 text-xl">
+                            <i class="fa-brands fa-line"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REGISTER SCREEN -->
+            <div id="screen-register" class="absolute inset-0 bg-poker-dark p-6 pt-12 z-40 hidden flex-col justify-between">
+                <div>
+                    <div class="flex items-center gap-2 mb-6">
+                        <button onclick="changeScreen('screen-login')" class="text-slate-400 hover:text-white p-2"><i class="fa-solid fa-chevron-left text-lg"></i></button>
+                        <h2 class="text-xl font-bold text-white">创建新账户</h2>
+                    </div>
+
+                    <!-- 注册方式切换 Tab -->
+                    <div class="flex bg-slate-950 p-1 rounded-xl mb-6">
+                        <button onclick="setRegMode('phone')" id="btn-reg-phone" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-poker-accent text-white">手机快捷注册</button>
+                        <button onclick="setRegMode('email')" id="btn-reg-email" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-400">电子邮箱注册</button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div id="reg-field-target">
+                            <label id="lbl-reg-target" class="block text-xs text-slate-400 font-semibold mb-1.5 pl-1">手机号码</label>
+                            <div class="relative">
+                                <span id="reg-prefix" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-semibold">+86</span>
+                                <input type="text" id="reg-username" placeholder="请输入手机号" class="w-full pl-16 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-poker-accent transition-all">
                             </div>
                         </div>
 
-                        <div className="text-sm">
-                            <div className="text-gray-400 text-xs mb-1">您的专属二级推广码:</div>
-                            <div className="flex gap-2">
-                                <div className="flex-1 bg-gray-800 border border-gray-600 text-emerald-400 font-mono font-bold px-3 py-2 rounded-lg text-center tracking-widest">
-                                    {user.myPromoCode}
+                        <div>
+                            <label class="block text-xs text-slate-400 font-semibold mb-1.5 pl-1">验证码</label>
+                            <div class="flex gap-2">
+                                <div class="relative flex-1">
+                                    <i class="fa-solid fa-shield-halved absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                                    <input type="text" placeholder="请输入验证码" class="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-poker-accent transition-all">
                                 </div>
-                                <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 rounded-lg font-bold text-xs">复制</button>
+                                <button onclick="sendOTP()" class="px-4 bg-slate-850 hover:bg-slate-800 border border-slate-700 text-poker-accent rounded-xl text-xs font-medium transition">获取验证码</button>
                             </div>
-                            <p className="text-[10px] text-gray-500 mt-2">分享此码，新用户注册填写后将绑定为您名下会员，您可获得抽水返利。</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-slate-400 font-semibold mb-1.5 pl-1">设置密码</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                                <input type="password" placeholder="8-20位数字及字母组合" class="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-poker-accent transition-all">
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 pl-1 pt-2">
+                            <input type="checkbox" id="agree" class="rounded bg-slate-900 border-slate-800 text-poker-accent focus:ring-poker-accent" checked>
+                            <label for="agree" class="text-xs text-slate-500">我已阅读并同意 <span class="text-poker-accent cursor-pointer">《用户许可服务协议》</span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <button onclick="handleRegister()" class="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-poker-accent hover:opacity-90 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-900/40 transition">
+                        注册并登录
+                    </button>
+                    <div class="text-center">
+                        <span class="text-xs text-slate-500">已有俱乐部账号？</span>
+                        <button onclick="changeScreen('screen-login')" class="text-xs text-poker-accent font-bold pl-1">返回登录</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FORGOT PASSWORD SCREEN -->
+            <div id="screen-forgot" class="absolute inset-0 bg-poker-dark p-6 pt-12 z-40 hidden flex-col justify-between">
+                <div>
+                    <div class="flex items-center gap-2 mb-6">
+                        <button onclick="changeScreen('screen-login')" class="text-slate-400 hover:text-white p-2"><i class="fa-solid fa-chevron-left text-lg"></i></button>
+                        <h2 class="text-xl font-bold text-white">重置登录密码</h2>
+                    </div>
+
+                    <p class="text-xs text-slate-400 mb-6 pl-1">请验证您绑定的手机号或电子邮箱，重置您的密码。</p>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 font-semibold mb-1.5 pl-1">安全邮箱/手机号</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                                <input type="text" id="forgot-target" placeholder="请输入绑定的邮箱或手机" class="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-poker-accent transition-all">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-slate-400 font-semibold mb-1.5 pl-1">手机/邮箱验证码</label>
+                            <div class="flex gap-2">
+                                <div class="relative flex-1">
+                                    <i class="fa-solid fa-shield-halved absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                                    <input type="text" placeholder="输入6位动态验证码" class="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-poker-accent transition-all">
+                                </div>
+                                <button onclick="sendOTP()" class="px-4 bg-slate-850 text-poker-accent rounded-xl text-xs font-medium transition">获取验证码</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-slate-400 font-semibold mb-1.5 pl-1">设置新密码</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-key absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                                <input type="password" placeholder="设置新防卷密保密码" class="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-poker-accent transition-all">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <button onclick="handleForgot()" class="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-poker-accent hover:opacity-90 text-white rounded-xl text-sm font-bold shadow-lg transition">
+                        确定重置密码
+                    </button>
+                </div>
+            </div>
+
+
+            <!-- MAIN LOBBY SCREEN (CONTAINING 5 TABS) -->
+            <div id="screen-main" class="absolute inset-0 bg-poker-dark flex flex-col justify-between z-30 hidden">
+                
+                <!-- TOP HEADER BAR -->
+                <div class="px-4 py-3 bg-slate-950/80 backdrop-blur border-b border-slate-900 flex justify-between items-center shrink-0">
+                    <div class="flex items-center gap-2.5">
+                        <img id="user-avatar" src="https://placehold.co/100x100/10b981/ffffff?text=U" class="w-8 h-8 rounded-full border border-poker-accent object-cover">
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs font-bold text-white" id="user-display-name">公子哥66</span>
+                                <span class="text-[9px] px-1 py-0.2 bg-poker-gold/10 text-poker-gold border border-poker-gold/20 rounded font-bold">V1</span>
+                            </div>
+                            <div class="flex items-center gap-1 text-[9px] text-slate-400 mt-0.5">
+                                <i class="fa-solid fa-coins text-poker-gold"></i>
+                                <span id="lobby-coin-count" class="font-bold">660</span>
+                                <span class="mx-1 text-slate-600">|</span>
+                                <i class="fa-solid fa-gem text-emerald-400"></i>
+                                <span id="lobby-gem-count" class="font-bold">80</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="bg-gray-800 rounded-xl overflow-hidden">
-                        <ProfileMenu icon="📊" label="牌局回顾 (战绩)" />
-                        <ProfileMenu icon="🛡️" label="我的战队" />
-                        <ProfileMenu icon="⚙️" label="游戏设置 (声音/桌布)" />
-                        <ProfileMenu icon="🌐" label="语言 (Language)" border={false} />
+                    <!-- 动态高亮顶部中心区：应用名 -->
+                    <div class="text-sm font-black tracking-widest text-emerald-500">POKER ACE</div>
+
+                    <!-- 右侧：全局消息快捷 Bell Icon (仅在 俱乐部、大厅、锦标赛 展示，点击直通消息Tab) -->
+                    <div class="relative">
+                        <button onclick="goToMessagesTab()" class="p-2 bg-slate-900 hover:bg-slate-850 rounded-xl text-slate-300 transition-all">
+                            <i class="fa-solid fa-bell text-sm"></i>
+                        </button>
+                        <!-- 红点提示 -->
+                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border border-slate-950 animate-bounce"></span>
                     </div>
                 </div>
-            );
-        }
 
-        function ProfileMenu({ icon, label, border = true }) {
-            return (
-                <div className={`p-4 flex items-center justify-between active:bg-gray-700 cursor-pointer ${border ? 'border-b border-gray-700/50' : ''}`}>
-                    <div className="flex items-center gap-3">
-                        <span className="text-xl">{icon}</span>
-                        <span className="text-white text-sm">{label}</span>
-                    </div>
-                    <Icons.ChevronLeft className="w-4 h-4 text-gray-500 rotate-180" />
-                </div>
-            );
-        }
+                <!-- MAIN LOBBY SCREEN TABS CONTENT CONTAINER -->
+                <div class="flex-1 overflow-y-auto px-4 py-3 space-y-4">
 
-        /* =========================================================
-           3. 子页面：创建牌局 & 俱乐部详情
-           ========================================================= */
-        function ScreenCreateGame({ setView }) {
-            return (
-                <div className="flex-1 flex flex-col bg-gray-900">
-                    <div className="p-4 flex items-center gap-4 bg-gray-800 border-b border-gray-700">
-                        <button onClick={() => setView('main')} className="text-gray-400"><Icons.ChevronLeft /></button>
-                        <h2 className="text-lg font-bold text-white">创建牌局 (类似WePoker)</h2>
-                    </div>
-                    <div className="p-4 space-y-6 overflow-y-auto">
-                        <div>
-                            <label className="text-gray-400 text-sm mb-2 block">游戏类型</label>
-                            <div className="flex gap-2">
-                                <button className="flex-1 bg-emerald-600 text-white py-2 rounded-lg font-bold">德州扑克 NLH</button>
-                                <button className="flex-1 bg-gray-800 text-gray-400 py-2 rounded-lg">奥马哈 PLO</button>
-                                <button className="flex-1 bg-gray-800 text-gray-400 py-2 rounded-lg">短牌 6+</button>
+                    <!-- ==================== TAB 1: 消息 (MESSAGES) ==================== -->
+                    <div id="tab-messages" class="hidden space-y-4">
+                        <!-- 公告/活动轮播广告图 -->
+                        <div class="relative h-28 w-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-800">
+                            <img src="https://placehold.co/600x300/1e293b/ffffff?text=MTT+Daily+Tournament+Online" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent p-3 flex flex-col justify-end">
+                                <span class="text-[9px] bg-rose-600 text-white font-bold px-1.5 py-0.5 rounded w-max mb-1">精选活动</span>
+                                <h4 class="text-xs font-bold text-white">百万超级锦标赛周六正式鸣锣开赛！</h4>
                             </div>
                         </div>
+
+                        <!-- 消息二级子分类卡片 -->
+                        <div class="flex bg-slate-950 p-1 rounded-xl">
+                            <button onclick="setMessageSubTab('friends')" id="btn-msg-friends" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-900 text-white">好友消息</button>
+                            <button onclick="setMessageSubTab('system')" id="btn-msg-system" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400">系统公告</button>
+                            <button onclick="setMessageSubTab('contacts')" id="btn-msg-contacts" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400">我的好友</button>
+                        </div>
+
+                        <!-- 消息列表 -->
+                        <div id="msg-list-container" class="space-y-2">
+                            <!-- 好友消息演示 (JS动态渲染或默认占位) -->
+                        </div>
+                    </div>
+
+
+                    <!-- ==================== TAB 2: 俱乐部 (CLUBS) ==================== -->
+                    <div id="tab-clubs" class="hidden space-y-4">
+                        <!-- WePoker积分制核心玩法说明区域 -->
+                        <div class="bg-gradient-to-r from-emerald-950/40 to-slate-900 p-3 rounded-2xl border border-emerald-900/30">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i class="fa-solid fa-circle-info text-poker-accent text-xs"></i>
+                                <span class="text-xs font-extrabold text-poker-accent">积分俱乐部管理说明 (WePoker)</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 leading-relaxed">
+                                玩家加入俱乐部开牌无需真实资金带出。管理员手动记录并审核入池积分。多开游戏可自主兑换钻石获取额度，结算全网自动进行。
+                            </p>
+                        </div>
+
+                        <!-- “创建俱乐部” & “加入俱乐部” 双按钮并排布局 -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="openModal('modal-create-club')" class="py-3 bg-gradient-to-r from-poker-accent to-emerald-600 hover:from-emerald-600 hover:to-poker-accent rounded-xl text-xs font-bold shadow-lg shadow-emerald-950/50 flex flex-col items-center justify-center gap-1 transition-all">
+                                <i class="fa-solid fa-plus-circle text-base"></i>
+                                <span>创建我的战队</span>
+                            </button>
+                            <button onclick="openModal('modal-join-club')" class="py-3 bg-slate-900 border border-slate-800 hover:bg-slate-850 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all text-slate-300">
+                                <i class="fa-solid fa-right-to-bracket text-base text-poker-accent"></i>
+                                <span>输入ID加入俱乐部</span>
+                            </button>
+                        </div>
+
+                        <!-- 俱乐部战队列表 -->
                         <div>
-                            <label className="text-gray-400 text-sm mb-2 block">盲注级别 (小/大/前注)</label>
-                            <select className="w-full bg-gray-800 text-white border border-gray-700 rounded-lg p-3 outline-none">
-                                <option>1 / 2</option>
-                                <option>5 / 10</option>
-                                <option>10 / 20 / 2</option>
-                                <option>50 / 100 / 10</option>
+                            <h3 class="text-xs font-bold text-slate-400 mb-2 pl-1">我加入的俱乐部</h3>
+                            <div id="clubs-list" class="space-y-2.5">
+                                <!-- 动态插入俱乐部卡片 -->
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- ==================== TAB 3: 首页/大厅 (PLAY / LOGO CENTER) ==================== -->
+                    <!-- TAB 3: 首页大厅 (Logo核心快速对局) -->
+                    <div id="tab-play" class="space-y-4">
+                        <!-- 大厅主视觉元素：大皮环形德扑桌插画 -->
+                        <div class="relative bg-gradient-to-b from-poker-felt to-poker-green h-44 rounded-3xl overflow-hidden flex flex-col items-center justify-center border border-emerald-800/40 poker-shadow">
+                            <!-- 拟真木纹桌框质感 -->
+                            <div class="absolute inset-2 border-4 border-amber-900/60 rounded-[22px] pointer-events-none"></div>
+                            <!-- 扑克符号背景浮雕 -->
+                            <div class="absolute inset-0 opacity-5 flex items-center justify-center text-[180px]"><i class="fa-solid fa-spade"></i></div>
+                            
+                            <!-- 中央快开按钮组 -->
+                            <div class="relative text-center z-10 flex flex-col items-center">
+                                <span class="text-[10px] uppercase font-bold tracking-widest text-emerald-400 mb-1">极速对战大厅</span>
+                                <h3 class="text-xl font-black text-white tracking-wider mb-3">NLH • 德州扑克好友局</h3>
+                                <div class="flex gap-2">
+                                    <button onclick="openCreateGameDrawer()" class="px-5 py-2.5 bg-poker-gold text-slate-950 rounded-full text-xs font-extrabold shadow-md hover:opacity-95 transition-all">
+                                        <i class="fa-solid fa-plus mr-1"></i> 创建好友局
+                                    </button>
+                                    <button onclick="openModal('modal-join-friend-table')" class="px-5 py-2.5 bg-slate-950/80 border border-slate-700 rounded-full text-xs font-bold text-white hover:bg-slate-950 transition-all">
+                                        <i class="fa-solid fa-gamepad mr-1"></i> 加入房间
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 正在进行的战局 (我的牌局) -->
+                        <div>
+                            <div class="flex justify-between items-center mb-2 pl-1">
+                                <h3 class="text-xs font-bold text-slate-400">我正在进行的牌局</h3>
+                                <span class="text-[10px] text-poker-accent">实时战况</span>
+                            </div>
+                            <div class="space-y-2" id="lobby-active-tables">
+                                <div class="bg-slate-900/80 border border-slate-800/80 p-3 rounded-2xl flex justify-between items-center">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-slate-950 rounded-xl flex items-center justify-center text-rose-500 font-extrabold border border-rose-500/20">NLH</div>
+                                        <div>
+                                            <h4 class="text-xs font-bold text-white">#123450789 极速盲注房</h4>
+                                            <p class="text-[9px] text-slate-500 mt-0.5">盲注: 0.1/0.2 | 玩家: 6/9 | 倒计时: 15秒</p>
+                                        </div>
+                                    </div>
+                                    <button onclick="enterGame()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded-lg transition-all">
+                                        进入观战/旁观
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- ==================== TAB 4: 锦标赛 (MTT TOURNAMENTS) ==================== -->
+                    <div id="tab-mtt" class="hidden space-y-4">
+                        <!-- 赛区快速筛选 Tab -->
+                        <div class="flex bg-slate-950 p-1 rounded-xl">
+                            <button onclick="setMTTSubTab('all')" id="btn-mtt-all" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-900 text-white">所有赛事</button>
+                            <button onclick="setMTTSubTab('my')" id="btn-mtt-my" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400">已报名赛事</button>
+                        </div>
+
+                        <!-- 赛事列表 (按时间倒序排列) -->
+                        <div id="mtt-list-container" class="space-y-2.5">
+                            <!-- 动态加载赛事卡片 -->
+                        </div>
+                    </div>
+
+
+                    <!-- ==================== TAB 5: 我的 (PROFILE) ==================== -->
+                    <div id="tab-profile" class="hidden space-y-4">
+                        <!-- 用户基本信息大卡片 -->
+                        <div class="bg-gradient-to-b from-slate-900 to-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <img src="https://placehold.co/150x150/10b981/ffffff?text=U" class="w-12 h-12 rounded-full border border-poker-accent">
+                                <div>
+                                    <h3 class="text-sm font-bold text-white">公子哥66</h3>
+                                    <p class="text-[10px] text-slate-500 mt-0.5">UID: 98765432</p>
+                                    <span class="inline-block text-[9px] px-1.5 py-0.2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded mt-1">普通玩家</span>
+                                </div>
+                            </div>
+                            <!-- 兑换金币/钻石快捷按钮 -->
+                            <button onclick="openWalletModal()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-850 text-xs border border-slate-800 text-poker-gold rounded-xl flex items-center gap-1">
+                                <i class="fa-solid fa-wallet"></i>
+                                <span>钱包兑换</span>
+                            </button>
+                        </div>
+
+                        <!-- 个人战绩核心统计 -->
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800/60">
+                                <span class="block text-[9px] text-slate-500">入池率 (VPIP)</span>
+                                <span class="block text-sm font-bold text-white mt-0.5">24.5%</span>
+                            </div>
+                            <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800/60">
+                                <span class="block text-[9px] text-slate-500">翻前加注 (PFR)</span>
+                                <span class="block text-sm font-bold text-emerald-400 mt-0.5">18.2%</span>
+                            </div>
+                            <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800/60">
+                                <span class="block text-[9px] text-slate-500">摊牌胜率 (WTSD)</span>
+                                <span class="block text-sm font-bold text-poker-gold mt-0.5">52.1%</span>
+                            </div>
+                        </div>
+
+                        <!-- 菜单选项 -->
+                        <div class="bg-slate-900 rounded-2xl border border-slate-800/60 overflow-hidden divide-y divide-slate-850">
+                            <div onclick="openHandHistoryModal()" class="p-3.5 flex justify-between items-center hover:bg-slate-850 cursor-pointer text-slate-300">
+                                <div class="flex items-center gap-3 text-xs">
+                                    <i class="fa-solid fa-clock-rotate-left text-emerald-400 w-4"></i>
+                                    <span>牌局历史回顾 (Hand History)</span>
+                                </div>
+                                <i class="fa-solid fa-chevron-right text-[10px] text-slate-500"></i>
+                            </div>
+                            <div onclick="alert('即将上线：我的积分战队统计信息')" class="p-3.5 flex justify-between items-center hover:bg-slate-850 cursor-pointer text-slate-300">
+                                <div class="flex items-center gap-3 text-xs">
+                                    <i class="fa-solid fa-users text-blue-400 w-4"></i>
+                                    <span>我的战队/俱乐部业绩统计</span>
+                                </div>
+                                <i class="fa-solid fa-chevron-right text-[10px] text-slate-500"></i>
+                            </div>
+                            <div onclick="openLanguageModal()" class="p-3.5 flex justify-between items-center hover:bg-slate-850 cursor-pointer text-slate-300">
+                                <div class="flex items-center gap-3 text-xs">
+                                    <i class="fa-solid fa-globe text-sky-400 w-4"></i>
+                                    <span>语言设置 (Language - 中文)</span>
+                                </div>
+                                <i class="fa-solid fa-chevron-right text-[10px] text-slate-500"></i>
+                            </div>
+                            <div onclick="openSettingsModal()" class="p-3.5 flex justify-between items-center hover:bg-slate-850 cursor-pointer text-slate-300">
+                                <div class="flex items-center gap-3 text-xs">
+                                    <i class="fa-solid fa-gear text-slate-400 w-4"></i>
+                                    <span>游戏参数设置 (Sound/Vibration)</span>
+                                </div>
+                                <i class="fa-solid fa-chevron-right text-[10px] text-slate-500"></i>
+                            </div>
+                        </div>
+
+                        <button onclick="handleLogout()" class="w-full py-3 bg-rose-950/25 hover:bg-rose-950/45 text-rose-400 text-xs font-bold rounded-xl border border-rose-900/30 transition text-center">
+                            退出当前账号
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- BOTTOM MAIN TAB NAVIGATION FOOTER -->
+                <div class="px-2 py-2 bg-slate-950 border-t border-slate-900 flex justify-between items-center shrink-0">
+                    <button onclick="changeTab('messages')" id="tab-btn-messages" class="flex-1 py-1 flex flex-col items-center gap-1 text-slate-500 hover:text-poker-accent transition-all">
+                        <i class="fa-solid fa-message text-sm"></i>
+                        <span class="text-[9px] font-bold">消息</span>
+                    </button>
+                    <button onclick="changeTab('clubs')" id="tab-btn-clubs" class="flex-1 py-1 flex flex-col items-center gap-1 text-slate-500 hover:text-poker-accent transition-all">
+                        <i class="fa-solid fa-users text-sm"></i>
+                        <span class="text-[9px] font-bold">俱乐部</span>
+                    </button>
+                    
+                    <!-- 核心发光Logo按键 (Play Tab) -->
+                    <button onclick="changeTab('play')" id="tab-btn-play" class="flex-1 -mt-4 relative z-20 flex flex-col items-center justify-center">
+                        <div class="w-11 h-11 bg-gradient-to-tr from-emerald-600 to-poker-accent text-slate-950 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/20 border-4 border-slate-950 text-lg transition-all active:scale-95" id="center-tab-logo">
+                            <i class="fa-solid fa-heart text-white"></i>
+                        </div>
+                        <span class="text-[9px] font-extrabold text-poker-accent mt-1">游戏大厅</span>
+                    </button>
+
+                    <button onclick="changeTab('mtt')" id="tab-btn-mtt" class="flex-1 py-1 flex flex-col items-center gap-1 text-slate-500 hover:text-poker-accent transition-all">
+                        <i class="fa-solid fa-trophy text-sm"></i>
+                        <span class="text-[9px] font-bold">锦标赛</span>
+                    </button>
+                    <button onclick="changeTab('profile')" id="tab-btn-profile" class="flex-1 py-1 flex flex-col items-center gap-1 text-slate-500 hover:text-poker-accent transition-all">
+                        <i class="fa-solid fa-user text-sm"></i>
+                        <span class="text-[9px] font-bold">我的</span>
+                    </button>
+                </div>
+            </div>
+
+
+            <!-- ==================== POKER GAME ROOM SCREEN (豎版高保真) ==================== -->
+            <div id="screen-game" class="absolute inset-0 bg-poker-dark flex flex-col justify-between z-20 hidden">
+                
+                <!-- GAME ROOM HEADER -->
+                <div class="px-3 py-2 bg-slate-950/80 border-b border-slate-900 flex justify-between items-center text-xs shrink-0">
+                    <div class="flex items-center gap-2">
+                        <button onclick="leaveGame()" class="p-1.5 text-slate-400 hover:text-white"><i class="fa-solid fa-chevron-left"></i></button>
+                        <div>
+                            <span class="font-bold text-white block">NLH 积分好友局</span>
+                            <span class="text-[9px] text-slate-400 block">盲注 0.1/0.2 | 局号: #123450789</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <!-- 倒计时/升级提示 -->
+                        <div class="bg-rose-950/35 border border-rose-900/40 px-2 py-0.5 rounded text-[9px] text-rose-400 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping"></span>
+                            <span>升盲 01:08</span>
+                        </div>
+                        <button onclick="openTableMenu()" class="p-1.5 text-slate-300 hover:text-white"><i class="fa-solid fa-bars"></i></button>
+                    </div>
+                </div>
+
+                <!-- POKER FEEL TABLE INTERACTIVE AREA -->
+                <div class="flex-1 relative bg-gradient-to-b from-poker-green to-emerald-950 p-2 overflow-hidden flex flex-col justify-between inner-felt-shadow">
+                    
+                    <!-- 皮质桌边装饰框 -->
+                    <div class="absolute inset-1 border-[6px] border-amber-950 rounded-[36px] pointer-events-none opacity-80 z-10 shadow-inner"></div>
+
+                    <!-- 顶部公牌/主锅池/盲注信息 -->
+                    <div class="w-full text-center mt-3 z-20">
+                        <div class="inline-block bg-slate-950/70 border border-slate-800/80 px-3 py-1 rounded-full">
+                            <div class="flex items-center gap-1 text-[10px] text-slate-300 font-semibold">
+                                <span>当前主底池 (Pot):</span>
+                                <span class="text-poker-gold font-bold flex items-center gap-0.5">
+                                    <i class="fa-solid fa-coins text-[8px]"></i>
+                                    <span id="game-pot-size">600</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 拟真发牌区/公共牌卡片布局 (Flop, Turn, River) -->
+                    <div class="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[340px] flex flex-col items-center gap-2 z-20">
+                        
+                        <!-- 牌局流程公共牌槽 -->
+                        <div class="flex gap-1.5 justify-center" id="board-cards-container">
+                            <!-- Flop (3张) -->
+                            <div class="w-12 h-18 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-slate-600 text-lg font-bold">?</div>
+                            <div class="w-12 h-18 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-slate-600 text-lg font-bold">?</div>
+                            <div class="w-12 h-18 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-slate-600 text-lg font-bold">?</div>
+                            <!-- Turn (1张) -->
+                            <div class="w-12 h-18 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-slate-600 text-lg font-bold">?</div>
+                            <!-- River (1张) -->
+                            <div class="w-12 h-18 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-slate-600 text-lg font-bold">?</div>
+                        </div>
+
+                        <!-- 动态胜率/提示层 -->
+                        <div id="table-win-probability" class="text-[9px] text-slate-300 bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800 hidden">
+                            当前成牌概率: <span class="text-emerald-400 font-extrabold">80% (同花听牌)</span>
+                        </div>
+                    </div>
+
+                    <!-- 9个座位的环状精确定位 (采用绝对定位模拟 image_87953e.jpg) -->
+                    <div class="absolute inset-0 z-10 pointer-events-none">
+                        
+                        <!-- 1号位 (中上方，按钮左) -->
+                        <div class="absolute top-[12%] left-[28%] -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
+                            <div class="flex flex-col items-center" onclick="showPlayerDetail('旺仔牛奶', 1)">
+                                <div class="relative w-12 h-12 rounded-full border-2 border-slate-700 overflow-hidden bg-slate-900 shadow-lg">
+                                    <img src="https://placehold.co/100x100/ec4899/ffffff?text=W" class="w-full h-full object-cover">
+                                    <!-- 玩家倒计时光圈 (模拟状态) -->
+                                    <div class="absolute inset-0 border-2 border-emerald-500 rounded-full animate-pulse"></div>
+                                </div>
+                                <span class="text-[9px] font-bold text-white bg-slate-950/80 px-1 rounded -mt-2">旺仔牛奶</span>
+                                <span class="text-[9px] text-yellow-400 font-extrabold flex items-center mt-0.5"><i class="fa-solid fa-coins text-[8px] mr-0.5"></i>660</span>
+                            </div>
+                        </div>
+
+                        <!-- 2号位 (中上方，按钮右) -->
+                        <div class="absolute top-[12%] left-[72%] -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
+                            <div class="flex flex-col items-center" onclick="showPlayerDetail('弃牌大师', 2)">
+                                <div class="relative w-12 h-12 rounded-full border-2 border-slate-800 overflow-hidden bg-slate-900 opacity-60">
+                                    <img src="https://placehold.co/100x100/3b82f6/ffffff?text=Q" class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 bg-black/60 flex items-center justify-center text-[10px] font-bold text-slate-300">弃牌</div>
+                                </div>
+                                <span class="text-[9px] font-bold text-slate-400 bg-slate-950/80 px-1 rounded -mt-2">弃牌大师</span>
+                                <span class="text-[9px] text-slate-500 font-bold flex items-center mt-0.5"><i class="fa-solid fa-coins text-[8px] mr-0.5"></i>0</span>
+                            </div>
+                        </div>
+
+                        <!-- 3号位 (右侧偏上) -->
+                        <div class="absolute top-[28%] left-[86%] -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
+                            <div class="flex flex-col items-center" onclick="showPlayerDetail('加注狂人', 3)">
+                                <div class="relative w-12 h-12 rounded-full border-2 border-slate-700 overflow-hidden bg-slate-900 shadow-lg">
+                                    <img src="https://placehold.co/100x100/eab308/ffffff?text=J" class="w-full h-full object-cover">
+                                </div>
+                                <span class="text-[9px] font-bold text-white bg-slate-950/80 px-1 rounded -mt-2">加注狂人</span>
+                                <span class="text-[9px] text-yellow-400 font-extrabold flex items-center mt-0.5"><i class="fa-solid fa-coins text-[8px] mr-0.5"></i>1200</span>
+                            </div>
+                        </div>
+
+                        <!-- 4号位 (右侧偏下) -->
+                        <div class="absolute top-[52%] left-[86%] -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
+                            <div class="flex flex-col items-center" onclick="showPlayerDetail('跟注精灵', 4)">
+                                <div class="relative w-12 h-12 rounded-full border-2 border-slate-700 overflow-hidden bg-slate-900 shadow-lg">
+                                    <img src="https://placehold.co/100x100/a855f7/ffffff?text=G" class="w-full h-full object-cover">
+                                </div>
+                                <span class="text-[9px] font-bold text-white bg-slate-950/80 px-1 rounded -mt-2">跟注精灵</span>
+                                <span class="text-[9px] text-yellow-400 font-extrabold flex items-center mt-0.5"><i class="fa-solid fa-coins text-[8px] mr-0.5"></i>450</span>
+                            </div>
+                        </div>
+
+                        <!-- 5号位 (右下侧) -->
+                        <div class="absolute top-[72%] left-[75%] -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
+                            <div class="flex flex-col items-center" onclick="showPlayerDetail('梭哈之王', 5)">
+                                <div class="relative w-12 h-12 rounded-full border-2 border-slate-800 overflow-hidden bg-slate-900 shadow-lg">
+                                    <img src="https://placehold.co/100x100/6366f1/ffffff?text=S" class="w-full h-full object-cover">
+                                </div>
+                                <span class="text-[9px] font-bold text-white bg-slate-950/80 px-1 rounded -mt-2">梭哈之王</span>
+                                <span class="text-[9px] text-rose-500 font-extrabold flex items-center mt-0.5">ALL IN</span>
+                            </div>
+                        </div>
+
+                        <!-- 6号位 (中下方 - HERO 主座玩家) -->
+                        <div class="absolute bottom-[2%] left-[50%] -translate-x-1/2 -translate-y-0.2 pointer-events-auto">
+                            <div class="flex flex-col items-center relative z-20">
+                                <!-- 手牌区域与头像结合 -->
+                                <div class="relative w-14 h-14 rounded-full border-2 border-poker-accent overflow-hidden bg-slate-900 shadow-lg ring-4 ring-emerald-500/20">
+                                    <img src="https://placehold.co/150x150/10b981/ffffff?text=Me" class="w-full h-full object-cover">
+                                    <div class="absolute bottom-0 inset-x-0 bg-emerald-600/80 text-[8px] text-center font-bold text-white py-0.5">我 (公子哥)</div>
+                                </div>
+                                <span class="text-[10px] text-yellow-400 font-extrabold flex items-center mt-1 bg-slate-950/90 px-2 py-0.5 rounded-full"><i class="fa-solid fa-coins text-[8px] mr-0.5"></i><span id="hero-live-chips">860</span></span>
+                            </div>
+                        </div>
+
+                        <!-- 7号位 (左下侧) -->
+                        <div class="absolute top-[72%] left-[25%] -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
+                            <div class="flex flex-col items-center" onclick="showPlayerDetail('低调牛仔', 7)">
+                                <div class="relative w-12 h-12 rounded-full border-2 border-slate-700 overflow-hidden bg-slate-900 shadow-lg">
+                                    <img src="https://placehold.co/100x100/14b8a6/ffffff?text=N" class="w-full h-full object-cover">
+                                </div>
+                                <span class="text-[9px] font-bold text-white bg-slate-950/80 px-1 rounded -mt-2">低调牛仔</span>
+                                <span class="text-[9px] text-yellow-400 font-extrabold flex items-center mt-0.5"><i class="fa-solid fa-coins text-[8px] mr-0.5"></i>320</span>
+                            </div>
+                        </div>
+
+                        <!-- 8号位 (左侧偏下) -->
+                        <div class="absolute top-[52%] left-[14%] -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
+                            <div class="flex flex-col items-center" onclick="showPlayerDetail('潜水神枪手', 8)">
+                                <div class="relative w-12 h-12 rounded-full border-2 border-slate-700 overflow-hidden bg-slate-900 shadow-lg">
+                                    <img src="https://placehold.co/100x100/f97316/ffffff?text=S" class="w-full h-full object-cover">
+                                </div>
+                                <span class="text-[9px] font-bold text-white bg-slate-950/80 px-1 rounded -mt-2">潜水神枪手</span>
+                                <span class="text-[9px] text-yellow-400 font-extrabold flex items-center mt-0.5"><i class="fa-solid fa-coins text-[8px] mr-0.5"></i>980</span>
+                            </div>
+                        </div>
+
+                        <!-- 9号位 (左侧偏上) -->
+                        <div class="absolute top-[28%] left-[14%] -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
+                            <div class="flex flex-col items-center" onclick="showPlayerDetail('天外来客', 9)">
+                                <div class="relative w-12 h-12 rounded-full border-2 border-slate-700 overflow-hidden bg-slate-900 shadow-lg">
+                                    <img src="https://placehold.co/100x100/ef4444/ffffff?text=T" class="w-full h-full object-cover">
+                                </div>
+                                <span class="text-[9px] font-bold text-white bg-slate-950/80 px-1 rounded -mt-2">天外来客</span>
+                                <span class="text-[9px] text-yellow-400 font-extrabold flex items-center mt-0.5"><i class="fa-solid fa-coins text-[8px] mr-0.5"></i>560</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- HERO 自己的手牌展示 (绝对定位，叠在头像上层方便操控) -->
+                    <div class="absolute bottom-[16%] left-1/2 -translate-x-1/2 z-30 flex gap-2">
+                        <!-- 第一张手牌 -->
+                        <div id="hero-card-1" class="w-14 h-20 bg-white rounded-lg border-2 border-slate-300 poker-shadow flex flex-col justify-between p-1 text-slate-950 font-black relative overflow-hidden transition-all duration-300">
+                            <div class="text-xs leading-none">8</div>
+                            <div class="text-rose-600 text-center text-2xl -mt-1"><i class="fa-solid fa-heart"></i></div>
+                            <div class="text-xs leading-none text-right rotate-180">8</div>
+                        </div>
+                        <!-- 第二张手牌 -->
+                        <div id="hero-card-2" class="w-14 h-20 bg-white rounded-lg border-2 border-slate-300 poker-shadow flex flex-col justify-between p-1 text-slate-950 font-black relative overflow-hidden transition-all duration-300">
+                            <div class="text-xs leading-none">6</div>
+                            <div class="text-slate-950 text-center text-2xl -mt-1"><i class="fa-solid fa-spade"></i></div>
+                            <div class="text-xs leading-none text-right rotate-180">6</div>
+                        </div>
+                    </div>
+
+                    <!-- 桌面辅助操作小按钮组 (牌桌底部左下/右下) -->
+                    <div class="w-full flex justify-between items-center px-4 mb-2 z-20">
+                        <div class="flex gap-2">
+                            <button onclick="simulateVoice()" class="w-8 h-8 rounded-full bg-slate-950/70 border border-slate-800 text-slate-300 flex items-center justify-center hover:bg-slate-900">
+                                <i class="fa-solid fa-microphone text-xs"></i>
+                            </button>
+                            <button onclick="openEmojiDialog()" class="w-8 h-8 rounded-full bg-slate-950/70 border border-slate-800 text-slate-300 flex items-center justify-center hover:bg-slate-900">
+                                <i class="fa-solid fa-face-smile text-xs"></i>
+                            </button>
+                        </div>
+                        <!-- 演示用功能按钮 -->
+                        <div class="flex gap-1.5">
+                            <button onclick="startDemoHandSim()" class="px-2.5 py-1 bg-gradient-to-r from-emerald-600 to-poker-accent text-white text-[9px] font-bold rounded-lg shadow-md animate-pulse">
+                                ⚡ 开始打牌模拟
+                            </button>
+                            <button onclick="openTableStats()" class="px-2 py-1 bg-slate-900 border border-slate-800 text-slate-300 text-[9px] font-bold rounded-lg">
+                                <i class="fa-solid fa-chart-simple mr-1"></i> 实时统计
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- POKER ACTIONS CONTROL PANEL -->
+                <div class="bg-slate-950 border-t border-slate-900 p-3 space-y-3 shrink-0">
+                    
+                    <!-- 比例快捷加注倍率 -->
+                    <div class="flex justify-between gap-1.5">
+                        <button onclick="quickSetRaise('1/2')" class="flex-1 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-lg text-[10px] font-bold text-slate-300">1/2 底池</button>
+                        <button onclick="quickSetRaise('2/3')" class="flex-1 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-lg text-[10px] font-bold text-slate-300">2/3 底池</button>
+                        <button onclick="quickSetRaise('1x')" class="flex-1 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-lg text-[10px] font-bold text-slate-300">1x 底池</button>
+                        <button onclick="quickSetRaise('2x')" class="flex-1 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-lg text-[10px] font-bold text-slate-300">2x 倍</button>
+                        <button onclick="quickSetRaise('allin')" class="flex-1 py-1.5 bg-rose-950/40 hover:bg-rose-950 border border-rose-900/40 rounded-lg text-[10px] font-bold text-rose-400">All-in</button>
+                    </div>
+
+                    <!-- 基础打牌操作控制组 (Fold, Check/Call, Raise Slider) -->
+                    <div class="flex gap-2.5">
+                        <!-- 弃牌 -->
+                        <button id="btn-action-fold" onclick="handleAction('fold')" class="flex-1 py-3 bg-slate-900 hover:bg-slate-850 text-rose-500 rounded-xl text-xs font-black border border-slate-800 flex flex-col items-center justify-center gap-1 transition-all">
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                            <span>弃牌 (Fold)</span>
+                        </button>
+                        
+                        <!-- 看牌 / 跟注 -->
+                        <button id="btn-action-call" onclick="handleAction('call')" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex flex-col items-center justify-center gap-1 shadow-lg shadow-emerald-950 transition-all">
+                            <i class="fa-solid fa-check text-sm"></i>
+                            <span id="txt-action-call">看牌 (Check)</span>
+                        </button>
+
+                        <!-- 加注滑块与确认 -->
+                        <div class="flex-1 flex flex-col gap-1.5 justify-center">
+                            <div class="flex justify-between items-center text-[10px] font-bold px-1 text-poker-gold">
+                                <span>加注数量</span>
+                                <span id="val-raise-num">120</span>
+                            </div>
+                            <!-- 拖动加注条 -->
+                            <input type="range" id="slider-raise" min="40" max="860" step="10" value="120" oninput="updateRaiseVal(this.value)" class="w-full accent-emerald-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                            <button id="btn-action-raise" onclick="handleAction('raise')" class="py-1.5 bg-poker-gold hover:opacity-95 text-slate-950 rounded-lg text-[10px] font-black tracking-wider uppercase">
+                                自由加注 (Raise)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- /内部可交互流式页面容器 -->
+
+
+        <!-- ==================== DIALOG MODALS SECTION ==================== -->
+
+        <!-- 1. 创建俱乐部弹窗 (积分制WePoker模式) -->
+        <div id="modal-create-club" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex-col justify-end">
+            <div class="bg-slate-900 rounded-t-[32px] p-5 space-y-4 border-t border-slate-800 transform translate-y-0 transition-transform duration-300">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-black text-white">申请创建积分制俱乐部</h3>
+                    <button onclick="closeModal('modal-create-club')" class="text-slate-500 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">俱乐部名称</label>
+                        <input type="text" id="club-input-name" placeholder="起个响亮的战队名称吧" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-poker-accent">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">管理员Telegram / WhatsApp联系方式 (必填)</label>
+                        <input type="text" id="club-input-contact" placeholder="方便其他群友或者好友联系审核积分" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-poker-accent">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">俱乐部公告规则</label>
+                        <textarea id="club-input-intro" placeholder="例如：本积分战队仅做社交结算记录，谢绝非熟人加入。" class="w-full h-16 px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-poker-accent resize-none"></textarea>
+                    </div>
+                </div>
+
+                <button onclick="submitCreateClub()" class="w-full py-3 bg-poker-accent text-white rounded-xl text-xs font-bold shadow-lg transition-all">
+                    确认提交并创建
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. 加入俱乐部输入弹窗 -->
+        <div id="modal-join-club" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex-col justify-end">
+            <div class="bg-slate-900 rounded-t-[32px] p-5 space-y-4 border-t border-slate-800">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-black text-white">申请加入熟人俱乐部</h3>
+                    <button onclick="closeModal('modal-join-club')" class="text-slate-500 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <p class="text-[10px] text-slate-400 leading-relaxed">请输入好友分享的 8 位俱乐部战队邀请 ID，管理员会在30分钟内进行审核：</p>
+
+                <input type="number" id="club-join-id" placeholder="请输入8位战队ID" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-center text-sm font-bold text-white tracking-widest focus:outline-none focus:border-poker-accent">
+
+                <button onclick="submitJoinClub()" class="w-full py-3 bg-poker-accent text-white rounded-xl text-xs font-bold transition-all">
+                    申请加入
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. 创建扑克好友局抽屉 (WePoker 深度设置) -->
+        <div id="drawer-create-game" class="absolute inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex-col justify-end">
+            <div class="bg-slate-900 rounded-t-[32px] p-5 space-y-4 max-h-[80%] overflow-y-auto border-t border-slate-800">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-plus text-poker-accent"></i>
+                        <h3 class="text-sm font-black text-white">创建全新德州牌桌</h3>
+                    </div>
+                    <button onclick="closeCreateGameDrawer()" class="text-slate-500 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <div class="space-y-3.5 text-xs text-slate-300">
+                    <!-- 游戏玩法 -->
+                    <div>
+                        <span class="block text-[11px] text-slate-400 mb-1.5 pl-0.5">游戏类型</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="cfg-nlh" onclick="setGameType('nlh')" class="py-2 rounded-lg font-bold border-2 border-poker-accent bg-slate-950 text-white">德州无限制 (NLH)</button>
+                            <button id="cfg-plo" onclick="setGameType('plo')" class="py-2 rounded-lg font-bold border border-slate-800 bg-slate-950 text-slate-400">奥马哈 (PLO)</button>
+                        </div>
+                    </div>
+
+                    <!-- 盲注配额 -->
+                    <div>
+                        <span class="block text-[11px] text-slate-400 mb-1.5 pl-0.5">盲注级别 (Small/Big Blind)</span>
+                        <select id="cfg-blinds" class="w-full py-2 px-3 bg-slate-950 border border-slate-800 rounded-lg text-white font-bold">
+                            <option value="0.1/0.2">0.1 / 0.2 (最适合新手社交)</option>
+                            <option value="0.5/1">0.5 / 1.0 (中等竞技)</option>
+                            <option value="1/2">1.0 / 2.0 (职业扑克手)</option>
+                            <option value="5/10">5.0 / 10.0 (顶级高额局)</option>
+                        </select>
+                    </div>
+
+                    <!-- 最小/最大带入 -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <span class="block text-[11px] text-slate-400 mb-1.5 pl-0.5">初始买入 (Min)</span>
+                            <input type="number" id="cfg-min-buy" value="40" class="w-full py-2 px-3 bg-slate-950 border border-slate-800 rounded-lg text-white font-bold text-center">
+                        </div>
+                        <div>
+                            <span class="block text-[11px] text-slate-400 mb-1.5 pl-0.5">初始买入 (Max)</span>
+                            <input type="number" id="cfg-max-buy" value="1000" class="w-full py-2 px-3 bg-slate-950 border border-slate-800 rounded-lg text-white font-bold text-center">
+                        </div>
+                    </div>
+
+                    <!-- 人数限制及时间 -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <span class="block text-[11px] text-slate-400 mb-1.5 pl-0.5">牌桌人数限制</span>
+                            <select id="cfg-players" class="w-full py-2 px-3 bg-slate-950 border border-slate-800 rounded-lg text-white font-bold text-center">
+                                <option value="6">6人桌 (极速对战)</option>
+                                <option value="9" selected>9人标准桌</option>
                             </select>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-gray-400 text-sm mb-2 block">人数</label>
-                                <select className="w-full bg-gray-800 text-white border border-gray-700 rounded-lg p-3 outline-none">
-                                    <option>6人桌</option>
-                                    <option>8人桌</option>
-                                    <option>9人桌</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-gray-400 text-sm mb-2 block">牌局时长</label>
-                                <select className="w-full bg-gray-800 text-white border border-gray-700 rounded-lg p-3 outline-none">
-                                    <option>1小时</option>
-                                    <option>2小时</option>
-                                    <option>4小时</option>
-                                </select>
-                            </div>
-                        </div>
                         <div>
-                            <label className="text-gray-400 text-sm mb-2 block">带入限制</label>
-                            <div className="flex items-center gap-2 text-white">
-                                <input type="number" defaultValue={100} className="w-20 bg-gray-800 border border-gray-700 rounded p-2 text-center" /> BB 
-                                <span className="text-gray-500">至</span>
-                                <input type="number" defaultValue={400} className="w-20 bg-gray-800 border border-gray-700 rounded p-2 text-center" /> BB
-                            </div>
-                        </div>
-                        
-                        <div className="bg-gray-800 p-4 rounded-xl flex justify-between items-center border border-gray-700">
-                            <div>
-                                <div className="text-white text-sm font-bold">建房消耗</div>
-                                <div className="text-gray-400 text-xs">房主支付</div>
-                            </div>
-                            <div className="flex items-center gap-1 text-blue-400 font-bold">
-                                <Icons.Diamond /> 10 钻石
-                            </div>
+                            <span class="block text-[11px] text-slate-400 mb-1.5 pl-0.5">开房时间</span>
+                            <select id="cfg-time" class="w-full py-2 px-3 bg-slate-950 border border-slate-800 rounded-lg text-white font-bold text-center">
+                                <option value="1">1 小时</option>
+                                <option value="2" selected>2 小时</option>
+                                <option value="4">4 小时</option>
+                            </select>
                         </div>
                     </div>
-                    <div className="p-4 bg-gray-800 border-t border-gray-700 pb-safe">
-                        <button onClick={() => setView('gameRoom')} className="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg shadow-lg">确认创建并进入</button>
+
+                    <!-- 积分制高级开关：前注/防偷看 -->
+                    <div class="flex items-center justify-between p-2.5 bg-slate-950 rounded-lg border border-slate-800">
+                        <div>
+                            <span class="block font-bold text-white text-[11px]">开启防作弊GPS定位/IP交叉检测</span>
+                            <span class="block text-[9px] text-slate-500">同IP或定位相近的玩家不可坐同桌</span>
+                        </div>
+                        <input type="checkbox" id="cfg-cheat-protect" class="rounded accent-emerald-500" checked>
                     </div>
-                </div>
-            );
-        }
 
-        function ScreenClubDetail({ setView }) {
-            return (
-                <div className="flex-1 flex flex-col bg-gray-900">
-                     <div className="p-4 flex items-center gap-4 bg-gray-800 border-b border-gray-700">
-                        <button onClick={() => setView('main')} className="text-gray-400"><Icons.ChevronLeft /></button>
-                        <h2 className="text-lg font-bold text-white">皇家同花顺战队</h2>
-                    </div>
-                    <div className="p-4">
-                        <div className="bg-gray-800 rounded-xl p-4 mb-4 flex gap-4">
-                             <div className="w-20 h-20 bg-gray-700 rounded-xl flex items-center justify-center text-4xl">🛡️</div>
-                             <div>
-                                 <h3 className="text-white font-bold text-lg">皇家同花顺战队</h3>
-                                 <p className="text-gray-400 text-xs mt-1">ID: 888888</p>
-                                 <p className="text-emerald-400 text-xs mt-2 border border-emerald-400/30 bg-emerald-400/10 inline-block px-2 py-1 rounded">积分审核制俱乐部</p>
-                             </div>
-                        </div>
-                        <div className="flex gap-2 mb-6">
-                            <button className="flex-1 bg-gray-800 text-white py-2 rounded-lg text-sm border border-gray-700">成员列表(1250)</button>
-                            <button className="flex-1 bg-gray-800 text-white py-2 rounded-lg text-sm border border-gray-700">战绩统计</button>
-                            <button className="flex-1 bg-gray-800 text-white py-2 rounded-lg text-sm border border-gray-700">设置</button>
-                        </div>
-
-                        <div className="flex justify-between items-center mb-4">
-                            <h4 className="text-white font-bold">俱乐部牌局</h4>
-                            <button onClick={() => setView('createGame')} className="text-emerald-500 text-sm font-bold flex items-center gap-1">➕ 创建牌局</button>
-                        </div>
-
-                        <div className="space-y-3">
-                            <GameCard setView={setView} title="内部常规桌1" blinds="10/20" time="已进行 0:20:00" players="4/8" />
-                            <GameCard setView={setView} title="内部常规桌2" blinds="50/100" time="已进行 1:10:00" players="8/8" />
-                        </div>
+                    <!-- 扣除额度提示 -->
+                    <div class="text-[10px] text-slate-400 bg-slate-950/60 p-2 rounded border border-slate-850/60 flex justify-between items-center">
+                        <span>开房扣除钻石额度:</span>
+                        <span class="text-poker-gold font-bold flex items-center gap-1">
+                            <i class="fa-solid fa-gem text-[10px]"></i>
+                            <span>15 钻石</span>
+                        </span>
                     </div>
                 </div>
-            );
-        }
 
-        /* =========================================================
-           4. 沉浸式游戏房间 (WSOP 竖版布局还原)
-           ========================================================= */
-        function ScreenGameRoom({ setView, user }) {
-            const [gameState, setGameState] = useState('preflop');
-            const [pot, setPot] = useState('$0.04');
-            const [showAction, setShowAction] = useState(true);
-            
-            const players = [
-                { id: 1, pos: 'bottom', name: user.name, stack: '$1.49', avatar: user.avatar, isHero: true, cards: ['K♣', '3♥'], action: 'Hero', bet: '$0.02' },
-                { id: 2, pos: 'top', name: 'Shark99', stack: '$1.98', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Shark', action: 'Check', bet: '$0.02' },
-                { id: 3, pos: 'left', name: 'FishBoy', stack: '$2.10', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fish', folded: true },
-                { id: 4, pos: 'right', name: 'Pro123', stack: '$5.40', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Pro', folded: true },
-                { id: 5, pos: 'top-left', name: 'GamerX', stack: '$1.00', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=X', folded: true },
-            ];
+                <button onclick="submitCreateGameTable()" class="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-poker-accent hover:opacity-95 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition duration-150">
+                    立即开辟游戏桌
+                </button>
+            </div>
+        </div>
 
-            return (
-                <div className="flex-1 bg-black flex flex-col relative overflow-hidden">
-                    {/* 顶部状态栏 (WSOP 风格) */}
-                    <div className="absolute top-0 w-full flex items-center justify-between p-2 z-40 bg-gradient-to-b from-black/80 to-transparent">
-                        <div className="flex items-center gap-2">
-                            <button onClick={() => setView('main')} className="text-gray-400 p-1">
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-                            </button>
-                            <div className="bg-black/50 border border-gray-600 rounded-full px-3 py-1 flex items-center gap-2">
-                                <span className="text-red-500 text-xs bg-white rounded-full w-4 h-4 flex items-center justify-center font-bold">!</span>
-                                <div className="flex text-white text-xs font-bold gap-1"><span>K♣</span><span className="text-red-500">3♥</span></div>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <button className="w-7 h-7 bg-black/60 border border-gray-700 rounded-full flex items-center justify-center text-gray-300 text-[10px] font-bold">||</button>
-                            <button className="w-7 h-7 bg-black/60 border border-gray-700 rounded-full flex items-center justify-center text-gray-300 text-xs">X</button>
-                            <button className="w-7 h-7 bg-black/60 border border-gray-700 rounded-full flex items-center justify-center text-gray-300 text-xs">🏠</button>
-                            <button className="w-7 h-7 bg-black/60 border border-gray-700 rounded-full flex items-center justify-center text-gray-300 text-xs">+</button>
-                            <button className="w-7 h-7 bg-black/60 border border-gray-700 rounded-md flex items-center justify-center text-gray-300 text-xs ml-2">🎴</button>
-                        </div>
-                    </div>
-
-                    {/* 桌面区域 */}
-                    <div className="flex-1 relative flex items-center justify-center pt-10 pb-20">
-                        <div className="poker-table-vertical flex flex-col items-center justify-center relative mt-4">
-                            
-                            {/* 中央桌面信息 */}
-                            <div className="z-10 flex flex-col items-center text-center -mt-12">
-                                <div className="text-gray-400 text-[10px] mb-1 opacity-70">Hold'em, $0.01 / $0.02</div>
-                                <div className="text-gray-300 text-xs">Total Pot</div>
-                                <div className="bg-black/80 text-yellow-400 px-4 py-0.5 rounded-full text-sm font-bold mb-8 border border-yellow-900/50 shadow-md">
-                                    {pot}
-                                </div>
-
-                                {/* 锦标赛信息 */}
-                                <div className="flex text-[10px] text-gray-400 opacity-60">
-                                    <div className="text-right pr-2 border-r border-gray-600 space-y-0.5">
-                                        <div>Total Prize</div>
-                                        <div>Prizes Remaining</div>
-                                        <div>My Points</div>
-                                        <div>My Prize</div>
-                                    </div>
-                                    <div className="text-left pl-2 text-gray-300 space-y-0.5">
-                                        <div>US$39,960</div>
-                                        <div>997</div>
-                                        <div>- (-)</div>
-                                        <div>-</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 玩家座位 */}
-                            {players.map((p) => (
-                                <Seat 
-                                    key={p.id} 
-                                    player={p} 
-                                    onClick={() => {}} 
-                                    showCards={gameState !== 'waiting' && p.isHero}
-                                />
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* 底部与右侧操作区 */}
-                    {showAction && (
-                        <>
-                            {/* 右侧垂直快捷加注按钮 */}
-                            <div className="absolute bottom-20 right-2 flex flex-col gap-1 w-[100px] z-30">
-                                <div className="action-btn-stacked flex flex-col p-1.5 cursor-pointer active:scale-95">
-                                    <div className="flex justify-between text-[9px] text-gray-400 px-1"><span>Pot</span><span>Raise</span></div>
-                                    <div className="text-center text-yellow-400 font-bold text-sm">$0.06</div>
-                                </div>
-                                <div className="action-btn-stacked flex flex-col p-1.5 cursor-pointer active:scale-95">
-                                    <div className="flex justify-between text-[9px] text-gray-400 px-1"><span>4BB</span><span>Raise</span></div>
-                                    <div className="text-center text-yellow-400 font-bold text-sm">$0.08</div>
-                                </div>
-                                <div className="action-btn-stacked flex flex-col p-1.5 cursor-pointer active:scale-95">
-                                    <div className="flex justify-between text-[9px] text-gray-400 px-1"><span>3BB</span><span>Raise</span></div>
-                                    <div className="text-center text-yellow-400 font-bold text-sm">$0.06</div>
-                                </div>
-                                <div className="action-btn-stacked flex flex-col p-1.5 cursor-pointer active:scale-95">
-                                    <div className="flex justify-between text-[9px] text-gray-400 px-1"><span>2BB</span><span>Raise</span></div>
-                                    <div className="text-center text-yellow-400 font-bold text-sm">$0.04</div>
-                                </div>
-                            </div>
-
-                            {/* 中下部辅助图标按钮 */}
-                            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-3 z-30">
-                                <button className="w-9 h-9 bg-[#1a1a1a] border border-gray-700 rounded-full flex items-center justify-center text-gray-400 shadow-lg">
-                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-                                </button>
-                                <button className="w-9 h-9 bg-[#1a1a1a] border border-gray-700 rounded-full flex items-center justify-center text-yellow-500 shadow-lg">
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
-                                </button>
-                            </div>
-
-                            {/* 底部主干操作按钮 */}
-                            <div className="absolute bottom-2 left-2 right-2 flex gap-2 z-30 h-14">
-                                <button className="flex-[1.2] action-btn-stacked text-sm font-bold active:scale-95">Check / Fold</button>
-                                <button className="flex-1 action-btn-stacked text-sm font-bold active:scale-95">Check</button>
-                                <button className="flex-[1.2] action-btn-stacked text-sm font-bold flex flex-col items-center justify-center active:scale-95 border-yellow-600/30">
-                                    <span className="text-gray-400 text-[10px]">Raise</span>
-                                    <span className="text-yellow-400 font-bold">$0.04</span>
-                                </button>
-                            </div>
-                        </>
-                    )}
+        <!-- 4. 加入好友房间输入房号弹窗 -->
+        <div id="modal-join-friend-table" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex-col justify-end">
+            <div class="bg-slate-900 rounded-t-[32px] p-5 space-y-4 border-t border-slate-800">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-black text-white">输入房间号加入好友对局</h3>
+                    <button onclick="closeModal('modal-join-friend-table')" class="text-slate-500 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-            );
+                <input type="number" id="input-join-friend-room" placeholder="请输入 9 位房间代码" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-center text-sm font-bold tracking-widest text-white focus:outline-none focus:border-poker-gold">
+                <button onclick="handleJoinFriendTable()" class="w-full py-3 bg-poker-gold text-slate-950 rounded-xl text-xs font-bold transition">
+                    搜索对局并进入
+                </button>
+            </div>
+        </div>
+
+        <!-- 5. 牌桌内点击玩家头像展示详情和花费钻石道具互动面板 -->
+        <div id="modal-player-detail" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex-col justify-end">
+            <div class="bg-slate-900 rounded-t-[32px] p-5 space-y-4 border-t border-slate-800">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <img id="pd-avatar" src="" class="w-10 h-10 rounded-full border border-poker-gold">
+                        <div>
+                            <h4 id="pd-name" class="text-xs font-bold text-white">旺仔牛奶</h4>
+                            <p class="text-[9px] text-slate-500 mt-0.5">位置: 座位 <span id="pd-seat-no">1</span></p>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('modal-player-detail')" class="text-slate-500 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <!-- 玩家简单数据指标统计 -->
+                <div class="grid grid-cols-2 gap-3 bg-slate-950 p-3 rounded-2xl border border-slate-850">
+                    <div class="text-center">
+                        <span class="block text-[9px] text-slate-500">胜场百分比 (Win Rate)</span>
+                        <span class="block text-xs font-bold text-white mt-1">45.2%</span>
+                    </div>
+                    <div class="text-center">
+                        <span class="block text-[9px] text-slate-500">累计带入筹码</span>
+                        <span class="block text-xs font-bold text-poker-gold mt-1">12,600</span>
+                    </div>
+                </div>
+
+                <!-- 趣味互动道具区 (花费钻石) -->
+                <div>
+                    <span class="block text-xs text-slate-400 mb-2 pl-0.5">发射互动道具 (每次花费 2 钻石)</span>
+                    <div class="grid grid-cols-4 gap-2.5">
+                        <button onclick="throwProp('egg')" class="py-2.5 bg-slate-950 hover:bg-slate-850 rounded-xl border border-slate-800 flex flex-col items-center gap-1 transition-all">
+                            <span class="text-xl">🥚</span>
+                            <span class="text-[9px] text-slate-300">砸鸡蛋</span>
+                        </button>
+                        <button onclick="throwProp('beer')" class="py-2.5 bg-slate-950 hover:bg-slate-850 rounded-xl border border-slate-800 flex flex-col items-center gap-1 transition-all">
+                            <span class="text-xl">🍺</span>
+                            <span class="text-[9px] text-slate-300">敬啤酒</span>
+                        </button>
+                        <button onclick="throwProp('flower')" class="py-2.5 bg-slate-950 hover:bg-slate-850 rounded-xl border border-slate-800 flex flex-col items-center gap-1 transition-all">
+                            <span class="text-xl">🌹</span>
+                            <span class="text-[9px] text-slate-300">送玫瑰</span>
+                        </button>
+                        <button onclick="throwProp('bomb')" class="py-2.5 bg-rose-950/20 hover:bg-rose-950/40 border border-rose-900/40 rounded-xl flex flex-col items-center gap-1 transition-all">
+                            <span class="text-xl">💣</span>
+                            <span class="text-[9px] text-rose-400 font-semibold">砸炸弹</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. 牌局回顾弹窗 -->
+        <div id="modal-hand-history" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex-col justify-end">
+            <div class="bg-slate-900 rounded-t-[32px] p-5 space-y-4 max-h-[80%] overflow-y-auto border-t border-slate-800">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-black text-white">历史牌局手牌回顾</h3>
+                    <button onclick="closeModal('modal-hand-history')" class="text-slate-500 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                
+                <div class="space-y-2.5" id="hand-history-list">
+                    <!-- 牌局历史 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. 钱包充值模拟弹窗 -->
+        <div id="modal-wallet" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex-col justify-end">
+            <div class="bg-slate-900 rounded-t-[32px] p-5 space-y-4 border-t border-slate-800">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-black text-white">虚拟收银及钻石兑换</h3>
+                    <button onclick="closeModal('modal-wallet')" class="text-slate-500 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="bg-slate-950 p-3 rounded-2xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">当前钻石余额</span>
+                        <span class="text-sm font-bold text-emerald-400 flex items-center gap-1">
+                            <i class="fa-solid fa-gem"></i>
+                            <span id="wallet-gem-count">80</span>
+                        </span>
+                    </div>
+
+                    <!-- 兑换选项 -->
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <button onclick="purchaseGems(100)" class="p-3 bg-slate-950 hover:bg-slate-850 rounded-xl border border-slate-800 text-left flex flex-col justify-between h-20 transition">
+                            <span class="text-xs font-bold text-white">100 钻石</span>
+                            <span class="text-[10px] text-poker-gold font-bold">￥ 10.00</span>
+                        </button>
+                        <button onclick="purchaseGems(500)" class="p-3 bg-slate-950 hover:bg-slate-850 rounded-xl border border-slate-800 text-left flex flex-col justify-between h-20 transition">
+                            <span class="text-xs font-bold text-white">550 钻石 (+50)</span>
+                            <span class="text-[10px] text-poker-gold font-bold">￥ 50.00</span>
+                        </button>
+                    </div>
+
+                    <!-- 钻石换取金币 -->
+                    <div class="pt-2">
+                        <label class="block text-xs text-slate-400 mb-1.5">用钻石换取牌局游戏币</label>
+                        <button onclick="exchangeGemToCoin()" class="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-poker-accent text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center gap-1 shadow-md">
+                            <i class="fa-solid fa-coins"></i>
+                            <span>花 10 钻石兑换 100 游戏币</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. 设置设置弹窗 -->
+        <div id="modal-settings" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex-col justify-end">
+            <div class="bg-slate-900 rounded-t-[32px] p-5 space-y-4 border-t border-slate-800">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-black text-white">系统和游戏参数设置</h3>
+                    <button onclick="closeModal('modal-settings')" class="text-slate-500 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                
+                <div class="space-y-3.5 text-xs text-slate-300">
+                    <div class="flex justify-between items-center">
+                        <span>经典扑克提示音效</span>
+                        <input type="checkbox" id="cfg-sound" class="rounded accent-emerald-500" checked>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span>设备振动反馈 (发牌/弃牌)</span>
+                        <input type="checkbox" id="cfg-vibrate" class="rounded accent-emerald-500" checked>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span>实时统计数字大字显色</span>
+                        <input type="checkbox" id="cfg-preshow" class="rounded accent-emerald-500" checked>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. 语言设置弹窗 -->
+        <div id="modal-language" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex-col justify-end">
+            <div class="bg-slate-900 rounded-t-[32px] p-5 space-y-3 border-t border-slate-800">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-black text-white">语言切换 (Language)</h3>
+                    <button onclick="closeModal('modal-language')" class="text-slate-500 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="space-y-2">
+                    <button onclick="setLang('zh')" class="w-full p-3 bg-slate-950 hover:bg-slate-850 rounded-xl text-left text-xs font-bold text-poker-accent flex justify-between items-center">
+                        <span>简体中文 (Chinese)</span>
+                        <i class="fa-solid fa-circle-check"></i>
+                    </button>
+                    <button onclick="setLang('en')" class="w-full p-3 bg-slate-950 hover:bg-slate-850 rounded-xl text-left text-xs text-slate-400">
+                        <span>English (英国)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 全局弹窗消息提示 Box (防卷，杜绝 Alert 使用) -->
+        <div id="global-toast" class="absolute top-12 left-1/2 -translate-x-1/2 px-4 py-2.5 bg-slate-950/95 border border-poker-accent text-white text-xs font-bold rounded-2xl shadow-xl z-50 flex items-center gap-2 transform translate-y-[-100px] opacity-0 transition-all duration-300 pointer-events-none">
+            <i class="fa-solid fa-circle-info text-poker-accent text-sm" id="toast-icon"></i>
+            <span id="toast-text">提示消息</span>
+        </div>
+
+    </div> <!-- /移动端框架容器 -->
+
+</div> <!-- /PC端设备装饰外壳 -->
+
+<script>
+    /* 
+       ====================================================
+       GLOBAL STATE & SIMULATOR DATABASE
+       ====================================================
+    */
+    const state = {
+        currentScreen: 'screen-login',
+        currentTab: 'play',
+        msgSubTab: 'friends',
+        mttSubTab: 'all',
+        regMode: 'phone',
+        language: 'zh',
+        user: {
+            name: "公子哥66",
+            gems: 80,
+            coins: 660,
+            vpip: "24.5%",
+            pfr: "18.2%",
+            wtsd: "52.1%"
+        },
+        clubs: [
+            { id: "1002345", name: "亚洲顶级VIP战队", owner: "大胖哥", contact: "TG: @dpang", intro: "WePoker积分俱乐部，全天24小时对局自动匹配审核积分结算。", members: 124, tables: 4 },
+            { id: "2009871", name: "雷德帕克俱乐部", owner: "皮皮虾", contact: "WhatsApp: +852 9876 5432", intro: "wepoker积分制度核心参考。进入俱乐部可随时带入。", members: 89, tables: 1 }
+        ],
+        mttTournaments: [
+            { id: "mtt-1", name: "⚔️ 超级周日MTT锦标赛 (百万保证)", time: "今天 21:00", cost: "50 钻石", prize: "1,000,000 积分", registered: false },
+            { id: "mtt-2", name: "💎 钻石争霸常规赛", time: "今天 22:30", cost: "10 钻石", prize: "150,000 钻石", registered: true },
+            { id: "mtt-3", name: "🍀 俱乐部内部热身邀请赛", time: "明天 15:00", cost: "免费", prize: "5,000 游戏币", registered: false }
+        ],
+        messages: [
+            { id: "msg-1", sender: "系统通知", text: "恭喜！您申请加入的 亚洲顶级VIP 俱乐部已通过管理员审核。", time: "10分钟前", type: "system", read: false },
+            { id: "msg-2", sender: "旺仔牛奶", text: "一会 9 人桌走起？我已经建好了，GPS 防作弊锁开启了快点进！", time: "15分钟前", type: "friends", avatar: "https://placehold.co/100x100/ec4899/ffffff?text=W", read: false },
+            { id: "msg-3", sender: "客服安妮", text: "亲爱的玩家，您的首冲特惠礼包已经送达，请前往‘我的->钱包’查看。", time: "1小时前", type: "system", read: true },
+            { id: "msg-4", sender: "跟注精灵", text: "等会打比赛记得发表情道具，我想砸鸡蛋啊哈哈！", time: "2小时前", type: "friends", avatar: "https://placehold.co/100x100/a855f7/ffffff?text=G", read: true }
+        ],
+        activeGame: {
+            status: 'idle', // idle, dealing, flop, turn, river, showdown
+            pot: 600,
+            board: [],
+            heroChips: 860,
+            currentBet: 120,
+            raiseVal: 120
+        }
+    };
+
+    // 音效合成器 (使用 Web Audio API，无需外部音频资源)
+    const audioSynth = {
+        ctx: null,
+        init() {
+            if (!this.ctx) {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        },
+        playDeal() {
+            this.init();
+            if (!document.getElementById('cfg-sound').checked) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.15);
+        },
+        playChips() {
+            this.init();
+            if (!document.getElementById('cfg-sound').checked) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+            osc.frequency.setValueAtTime(1000, this.ctx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.15);
+        }
+    };
+
+    /* 
+       ====================================================
+       STREAMING_CHUNK: 核心全局函数和界面跳转逻辑
+       ====================================================
+    */
+    window.onload = function() {
+        // H5 原型系统初始化
+        renderClubsList();
+        renderMTTList();
+        renderMessageList();
+        updateUI();
+    };
+
+    // 全局弹出消息提示
+    function showToast(text, iconClass = 'fa-solid fa-circle-check') {
+        const toast = document.getElementById('global-toast');
+        const textSpan = document.getElementById('toast-text');
+        const icon = document.getElementById('toast-icon');
+        
+        icon.className = `${iconClass} text-poker-accent text-sm`;
+        textSpan.innerText = text;
+        
+        toast.style.transform = "translateY(0) translateX(-50%)";
+        toast.style.opacity = "1";
+        
+        setTimeout(() => {
+            toast.style.transform = "translateY(-100px) translateX(-50%)";
+            toast.style.opacity = "0";
+        }, 2200);
+    }
+
+    // 屏幕切换
+    function changeScreen(screenId) {
+        document.querySelectorAll('#screen-login, #screen-register, #screen-forgot, #screen-main, #screen-game').forEach(el => {
+            el.classList.add('hidden');
+        });
+        const target = document.getElementById(screenId);
+        target.classList.remove('hidden');
+        state.currentScreen = screenId;
+    }
+
+    // 大厅 Tab 切换
+    function changeTab(tabName) {
+        document.querySelectorAll('#tab-messages, #tab-clubs, #tab-play, #tab-mtt, #tab-profile').forEach(el => {
+            el.classList.add('hidden');
+        });
+        document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+        
+        // 按钮高亮重置
+        document.querySelectorAll('[id^="tab-btn-"]').forEach(btn => {
+            btn.className = "flex-1 py-1 flex flex-col items-center gap-1 text-slate-500 hover:text-poker-accent transition-all";
+        });
+        
+        const actBtn = document.getElementById(`tab-btn-${tabName}`);
+        if (actBtn) {
+            if (tabName === 'play') {
+                actBtn.className = "flex-1 -mt-4 relative z-20 flex flex-col items-center justify-center";
+                document.getElementById('center-tab-logo').className = "w-11 h-11 bg-gradient-to-tr from-emerald-600 to-poker-accent text-slate-950 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/20 border-4 border-slate-950 text-lg transition-all scale-105";
+            } else {
+                actBtn.className = "flex-1 py-1 flex flex-col items-center gap-1 text-poker-accent transition-all scale-105 font-bold";
+                document.getElementById('center-tab-logo').className = "w-11 h-11 bg-gradient-to-tr from-slate-800 to-slate-900 text-slate-400 rounded-full flex items-center justify-center shadow-md border-4 border-slate-950 text-lg transition-all scale-95";
+            }
+        }
+        state.currentTab = tabName;
+    }
+
+    // 快捷铃铛消息直达
+    function goToMessagesTab() {
+        changeTab('messages');
+        showToast("已为您切换至消息通知频道", "fa-solid fa-bell");
+    }
+
+    // 同步更新全局顶部和钱包金额
+    function updateUI() {
+        document.getElementById('lobby-coin-count').innerText = state.user.coins;
+        document.getElementById('lobby-gem-count').innerText = state.user.gems;
+        document.getElementById('wallet-gem-count').innerText = state.user.gems;
+    }
+
+    /* 
+       ====================================================
+       STREAMING_CHUNK: 账号流程模拟逻辑 (登录/注册/找回密码)
+       ====================================================
+    */
+    function handleLogin() {
+        const nameInput = document.getElementById('login-username').value;
+        if (nameInput.trim()) {
+            state.user.name = nameInput;
+            document.getElementById('user-display-name').innerText = nameInput;
+        }
+        showToast("登录成功！正在进入德州大厅...");
+        changeScreen('screen-main');
+        changeTab('play');
+    }
+
+    function handleRegister() {
+        const username = document.getElementById('reg-username').value;
+        if (!username) {
+            showToast("请输入注册账号或手机号", "fa-solid fa-triangle-exclamation");
+            return;
+        }
+        showToast("注册成功！已自动关联默认俱乐部。");
+        changeScreen('screen-login');
+    }
+
+    function handleForgot() {
+        const target = document.getElementById('forgot-target').value;
+        if (!target) {
+            showToast("请输入密保绑定的手机或邮箱", "fa-solid fa-circle-exclamation");
+            return;
+        }
+        showToast("新密保重置完成，请妥善保管新密码！");
+        changeScreen('screen-login');
+    }
+
+    function setRegMode(mode) {
+        state.regMode = mode;
+        const btnPhone = document.getElementById('btn-reg-phone');
+        const btnEmail = document.getElementById('btn-reg-email');
+        const lblTarget = document.getElementById('lbl-reg-target');
+        const regPrefix = document.getElementById('reg-prefix');
+        const regInput = document.getElementById('reg-username');
+
+        if (mode === 'phone') {
+            btnPhone.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-poker-accent text-white";
+            btnEmail.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-400";
+            lblTarget.innerText = "手机号码";
+            regPrefix.style.display = "block";
+            regInput.placeholder = "请输入手机号";
+            regInput.style.paddingLeft = "4rem";
+        } else {
+            btnPhone.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-400";
+            btnEmail.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-poker-accent text-white";
+            lblTarget.innerText = "电子邮箱";
+            regPrefix.style.display = "none";
+            regInput.placeholder = "请输入您的邮箱地址";
+            regInput.style.paddingLeft = "1rem";
+        }
+    }
+
+    function simulateSocialLogin(platform) {
+        showToast(`已成功通过 ${platform} 进行快捷身份认证授权!`);
+        setTimeout(() => {
+            changeScreen('screen-main');
+            changeTab('play');
+        }, 1000);
+    }
+
+    function sendOTP() {
+        showToast("动态验证码已成功发往您的设备，请注意查收。");
+    }
+
+    function handleLogout() {
+        showToast("已成功退出登录");
+        changeScreen('screen-login');
+    }
+
+    /* 
+       ====================================================
+       STREAMING_CHUNK: 俱乐部（Clubs）业务板块逻辑
+       ====================================================
+    */
+    function renderClubsList() {
+        const listContainer = document.getElementById('clubs-list');
+        listContainer.innerHTML = '';
+        state.clubs.forEach((club, index) => {
+            const card = document.createElement('div');
+            card.className = "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-center hover:border-poker-accent transition duration-150";
+            card.innerHTML = `
+                <div class="space-y-1">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                        <h4 class="text-xs font-bold text-white">${club.name}</h4>
+                        <span class="text-[8px] bg-slate-950 text-emerald-400 border border-emerald-950 px-1 py-0.2 rounded font-bold">ID: ${club.id}</span>
+                    </div>
+                    <p class="text-[9px] text-slate-400">群主/会长: ${club.owner} | ${club.contact}</p>
+                    <p class="text-[9px] text-slate-500 max-w-xs truncate">${club.intro}</p>
+                    <div class="flex items-center gap-2 text-[9px] text-slate-400 pt-1">
+                        <span>👥 战队人数: <strong>${club.members}</strong></span>
+                        <span class="text-slate-700">|</span>
+                        <span>🃏 进行中牌桌: <strong class="text-poker-accent">${club.tables}</strong></span>
+                    </div>
+                </div>
+                <button onclick="enterClub('${club.id}')" class="px-3.5 py-2 bg-slate-950 hover:bg-slate-850 text-poker-accent text-xs font-bold rounded-xl border border-slate-850 transition-all">
+                    进入大厅
+                </button>
+            `;
+            listContainer.appendChild(card);
+        });
+    }
+
+    function enterClub(clubId) {
+        const club = state.clubs.find(c => c.id === clubId);
+        showToast(`已进入：[${club.name}]`);
+        // 跳转到大厅 tab
+        changeTab('play');
+    }
+
+    function submitCreateClub() {
+        const name = document.getElementById('club-input-name').value;
+        const contact = document.getElementById('club-input-contact').value;
+        const intro = document.getElementById('club-input-intro').value;
+
+        if (!name || !contact) {
+            showToast("俱乐部名称及联系方式是必填项！", "fa-solid fa-triangle-exclamation");
+            return;
         }
 
-        function Seat({ player, onClick, showCards }) {
-            // 针对竖向椭圆桌的坐标定位
-            const posStyles = {
-                'bottom': { bottom: '-3%', left: '50%', transform: 'translateX(-50%)' },
-                'top': { top: '-2%', left: '50%', transform: 'translateX(-50%)' },
-                'left': { left: '-3%', top: '40%', transform: 'translateY(-50%)' },
-                'right': { right: '-3%', top: '40%', transform: 'translateY(-50%)' },
-                'top-left': { top: '12%', left: '-1%' },
-                'top-right': { top: '12%', right: '-1%' },
-            };
+        const newClub = {
+            id: String(Math.floor(1000000 + Math.random() * 9000000)),
+            name: name,
+            owner: state.user.name,
+            contact: contact,
+            intro: intro || "WePoker 玩法模式",
+            members: 1,
+            tables: 0
+        };
 
-            // 动态下注筹码位置 (保持在玩家和底池之间)
-            const getBetPosition = (pos) => {
-                switch(pos) {
-                    case 'bottom': return '-top-12 left-1/2 -translate-x-1/2';
-                    case 'top': return '-bottom-12 left-1/2 -translate-x-1/2';
-                    case 'left': return 'top-1/2 -translate-y-1/2 -right-14';
-                    case 'right': return 'top-1/2 -translate-y-1/2 -left-14';
-                    case 'top-left': return '-bottom-4 -right-12';
-                    case 'top-right': return '-bottom-4 -left-12';
-                    default: return '-top-10';
+        state.clubs.unshift(newClub);
+        renderClubsList();
+        closeModal('modal-create-club');
+        showToast("申请提交成功！您已自动担任战队管理员。");
+    }
+
+    function submitJoinClub() {
+        const inputId = document.getElementById('club-join-id').value;
+        if (!inputId) {
+            showToast("请输入俱乐部 ID", "fa-solid fa-circle-info");
+            return;
+        }
+        showToast(`加入俱乐部 ID: [${inputId}] 申请已提交。等候管理员审核积分授权！`);
+        closeModal('modal-join-club');
+    }
+
+    /* 
+       ====================================================
+       STREAMING_CHUNK: 扑克游戏开局抽屉 & MTT锦标赛
+       ====================================================
+    */
+    function openCreateGameDrawer() {
+        document.getElementById('drawer-create-game').classList.remove('hidden');
+    }
+
+    function closeCreateGameDrawer() {
+        document.getElementById('drawer-create-game').classList.add('hidden');
+    }
+
+    let activeType = 'nlh';
+    function setGameType(type) {
+        activeType = type;
+        const btnNlh = document.getElementById('cfg-nlh');
+        const btnPlo = document.getElementById('cfg-plo');
+        if (type === 'nlh') {
+            btnNlh.className = "py-2 rounded-lg font-bold border-2 border-poker-accent bg-slate-950 text-white";
+            btnPlo.className = "py-2 rounded-lg font-bold border border-slate-800 bg-slate-950 text-slate-400";
+        } else {
+            btnNlh.className = "py-2 rounded-lg font-bold border border-slate-800 bg-slate-950 text-slate-400";
+            btnPlo.className = "py-2 rounded-lg font-bold border-2 border-poker-accent bg-slate-950 text-white";
+        }
+    }
+
+    function submitCreateGameTable() {
+        const blinds = document.getElementById('cfg-blinds').value;
+        const maxPlayers = document.getElementById('cfg-players').value;
+        
+        if (state.user.gems < 15) {
+            showToast("您的钻石额度不足开桌房卡费用，请前往钱包兑换", "fa-solid fa-triangle-exclamation");
+            return;
+        }
+
+        state.user.gems -= 15;
+        updateUI();
+
+        showToast("全新德扑熟人对局开房成功！正在调入德州扑克牌桌...");
+        closeCreateGameDrawer();
+        
+        // 自动拉入对局
+        setTimeout(() => {
+            enterGame();
+        }, 1200);
+    }
+
+    function handleJoinFriendTable() {
+        const roomNo = document.getElementById('input-join-friend-room').value;
+        if (!roomNo) {
+            showToast("房间号不能为空");
+            return;
+        }
+        showToast(`找到对局房 [#${roomNo}]，准备坐入...`);
+        closeModal('modal-join-friend-table');
+        setTimeout(() => { enterGame(); }, 1000);
+    }
+
+    function enterGame() {
+        changeScreen('screen-game');
+        showToast("已就座德扑牌桌6号Hero席位，等待发牌。");
+    }
+
+    function leaveGame() {
+        changeScreen('screen-main');
+        changeTab('play');
+        showToast("已安全离开房间并结算好战绩账本。");
+    }
+
+    // MTT 赛事渲染
+    function renderMTTList() {
+        const container = document.getElementById('mtt-list-container');
+        container.innerHTML = '';
+        state.mttTournaments.forEach(t => {
+            if (state.mttSubTab === 'my' && !t.registered) return;
+            const card = document.createElement('div');
+            card.className = "bg-slate-900 border border-slate-800/80 p-3 rounded-2xl flex justify-between items-center";
+            card.innerHTML = `
+                <div>
+                    <h4 class="text-xs font-bold text-white">${t.name}</h4>
+                    <p class="text-[9px] text-slate-500 mt-0.5">⏱️ 开赛时间: ${t.time}</p>
+                    <div class="flex gap-2 text-[9px] mt-1.5">
+                        <span class="text-poker-gold">💰 保底奖金: ${t.prize}</span>
+                        <span class="text-slate-600">|</span>
+                        <span class="text-slate-400">🎫 报名费用: ${t.cost}</span>
+                    </div>
+                </div>
+                ${t.registered ? 
+                    `<span class="px-3 py-1.5 bg-slate-950 border border-slate-800 text-[9px] font-bold text-slate-500 rounded-xl">已报名参赛</span>` :
+                    `<button onclick="registerMTT('${t.id}')" class="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-poker-accent text-white text-[9px] font-extrabold rounded-xl shadow transition">立即报名</button>`
                 }
-            };
+            `;
+            container.appendChild(card);
+        });
+    }
 
-            return (
-                <div className="absolute z-20 flex flex-col items-center" style={posStyles[player.pos]}>
-                    
-                    {/* 下注筹码与金额 */}
-                    {player.bet && (
-                        <div className={`absolute flex flex-col items-center z-10 ${getBetPosition(player.pos)}`}>
-                            <div className="w-3.5 h-3.5 bg-yellow-600 rounded-full border border-yellow-300 shadow-[0_2px_4px_rgba(0,0,0,0.5)] mb-0.5"></div>
-                            <div className="bg-black/80 text-white text-[10px] px-1.5 rounded-sm font-bold font-mono tracking-tighter shadow-md whitespace-nowrap">{player.bet}</div>
-                        </div>
-                    )}
+    function registerMTT(id) {
+        const mtt = state.mttTournaments.find(x => x.id === id);
+        showToast(`恭喜您，已成功报名：${mtt.name}!`);
+        mtt.registered = true;
+        renderMTTList();
+    }
 
-                    {/* Hero 视角巨大底牌 */}
-                    {showCards && player.isHero && (
-                        <div className="absolute -top-16 -left-14 flex gap-0 transform -rotate-6 scale-[1.5] origin-bottom-left z-30 drop-shadow-2xl pointer-events-none">
-                            <div className="card w-8 h-12 text-[10px] text-black border border-gray-300 shadow-md bg-white flex items-start justify-start p-1 leading-none">
-                                <div className="flex flex-col items-center"><span className="font-bold text-sm">K</span><span>♣</span></div>
+    function setMTTSubTab(sub) {
+        state.mttSubTab = sub;
+        document.getElementById('btn-mtt-all').className = sub === 'all' ? "flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-900 text-white" : "flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400";
+        document.getElementById('btn-mtt-my').className = sub === 'my' ? "flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-900 text-white" : "flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400";
+        renderMTTList();
+    }
+
+    /* 
+       ====================================================
+       STREAMING_CHUNK: 消息中心 (Messages Tab) 二级标签演示
+       ====================================================
+    */
+    function renderMessageList() {
+        const container = document.getElementById('msg-list-container');
+        container.innerHTML = '';
+        const filtered = state.messages.filter(m => {
+            if (state.msgSubTab === 'friends' && m.type === 'friends') return true;
+            if (state.msgSubTab === 'system' && m.type === 'system') return true;
+            if (state.msgSubTab === 'contacts') return false; // 好友通讯录单独处理
+            return false;
+        });
+
+        if (state.msgSubTab === 'contacts') {
+            // 渲染好友通讯录
+            container.innerHTML = `
+                <div class="space-y-2">
+                    <div class="bg-slate-900 p-3 rounded-2xl flex justify-between items-center">
+                        <div class="flex items-center gap-2.5">
+                            <img src="https://placehold.co/100x100/ec4899/ffffff?text=W" class="w-8 h-8 rounded-full border border-slate-800">
+                            <div>
+                                <h4 class="text-xs font-bold text-white">旺仔牛奶</h4>
+                                <span class="text-[8px] text-poker-accent">🟢 在线对局中</span>
                             </div>
-                            <div className="card w-8 h-12 text-[10px] text-red-600 border border-gray-300 shadow-md bg-white flex items-start justify-start p-1 leading-none translate-y-2 rotate-12">
-                                <div className="flex flex-col items-center"><span className="font-bold text-sm">3</span><span>♥</span></div>
+                        </div>
+                        <button onclick="simulateSendMessage('旺仔牛奶')" class="p-1.5 bg-slate-950 text-poker-accent rounded-lg border border-slate-800"><i class="fa-solid fa-comment-dots"></i></button>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-2xl flex justify-between items-center">
+                        <div class="flex items-center gap-2.5">
+                            <img src="https://placehold.co/100x100/a855f7/ffffff?text=G" class="w-8 h-8 rounded-full border border-slate-800">
+                            <div>
+                                <h4 class="text-xs font-bold text-white">跟注精灵</h4>
+                                <span class="text-[8px] text-slate-500">🔴 离线</span>
                             </div>
                         </div>
-                    )}
-
-                    {/* 其他玩家背面底牌 */}
-                    {!player.isHero && !player.folded && (
-                        <div className={`flex gap-0.5 absolute z-0 ${player.pos === 'top' ? '-bottom-6 left-1/2 -translate-x-1/2' : '-top-6 left-1/2 -translate-x-1/2'}`}>
-                            <div className="w-6 h-8 bg-[#8b1c1c] border border-black/50 rounded-sm shadow-md rotate-[-5deg]"></div>
-                            <div className="w-6 h-8 bg-[#8b1c1c] border border-black/50 rounded-sm shadow-md rotate-[5deg] -ml-2"></div>
-                        </div>
-                    )}
-
-                    {/* 庄家位 D 按钮 */}
-                    {player.pos === 'top' && (
-                        <div className="absolute -bottom-2 -left-4 w-4 h-4 bg-yellow-500 rounded-full border border-yellow-200 text-black text-[9px] font-bold flex items-center justify-center shadow-md z-30">D</div>
-                    )}
-
-                    {/* 极简玩家信息牌 (WSOP 风格) */}
-                    <div onClick={onClick} className={`relative cursor-pointer z-20 ${player.folded ? 'opacity-50 grayscale' : ''}`}>
-                        <div className={`bg-[#1a1a1a] border-t-2 ${player.isHero ? 'border-blue-500' : 'border-red-600'} rounded-md w-[72px] flex flex-col items-center shadow-lg relative overflow-hidden`}>
-                            {/* 顶部姓名 (去除国旗) */}
-                            <div className="w-full bg-black flex items-center justify-center px-1.5 h-4">
-                                <span className="text-[8px] text-gray-300 truncate max-w-[60px]">{player.name}</span>
-                            </div>
-                            {/* 筹码量 */}
-                            <div className="py-1 w-full text-center bg-gradient-to-b from-gray-800 to-gray-900">
-                                <div className={`text-[11px] font-bold font-mono leading-none ${player.isHero ? 'text-blue-300' : 'text-gray-300'}`}>{player.stack}</div>
-                            </div>
-                            {/* Hero 的进度条 */}
-                            {player.isHero && (
-                                <div className="w-full h-[3px] bg-gray-800">
-                                    <div className="h-full bg-green-500 w-[70%]"></div>
-                                </div>
-                            )}
-                        </div>
+                        <button onclick="simulateSendMessage('跟注精灵')" class="p-1.5 bg-slate-950 text-poker-accent rounded-lg border border-slate-800"><i class="fa-solid fa-comment-dots"></i></button>
                     </div>
                 </div>
-            );
+            `;
+            return;
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+        filtered.forEach(m => {
+            const card = document.createElement('div');
+            card.className = `p-3.5 rounded-2xl flex gap-3 items-center hover:bg-slate-850/50 transition duration-150 relative border ${m.read ? 'bg-slate-900/60 border-slate-900' : 'bg-slate-900 border-slate-800'}`;
+            card.innerHTML = `
+                ${m.type === 'friends' ? 
+                    `<img src="${m.avatar}" class="w-10 h-10 rounded-full border border-slate-800 flex-shrink-0">` :
+                    `<div class="w-10 h-10 rounded-full bg-emerald-950/50 border border-emerald-900/30 flex items-center justify-center text-poker-accent flex-shrink-0 text-sm"><i class="fa-solid fa-bullhorn"></i></div>`
+                }
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-center">
+                        <h4 class="text-xs font-bold text-white">${m.sender}</h4>
+                        <span class="text-[8px] text-slate-500">${m.time}</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-1 truncate">${m.text}</p>
+                </div>
+                ${!m.read ? `<span class="absolute top-3.5 right-3.5 w-1.5 h-1.5 bg-rose-500 rounded-full"></span>` : ''}
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function setMessageSubTab(sub) {
+        state.msgSubTab = sub;
+        document.getElementById('btn-msg-friends').className = sub === 'friends' ? "flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-900 text-white" : "flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400";
+        document.getElementById('btn-msg-system').className = sub === 'system' ? "flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-900 text-white" : "flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400";
+        document.getElementById('btn-msg-contacts').className = sub === 'contacts' ? "flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-900 text-white" : "flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400";
+        renderMessageList();
+    }
+
+    function simulateSendMessage(name) {
+        showToast(`已向 [${name}] 发送了一则招呼，等待回复。`);
+    }
+
+    /* 
+       ====================================================
+       STREAMING_CHUNK: 模拟牌桌动态交互 (开始打牌、发牌、看牌、结算、扔道具)
+       ====================================================
+    */
+    let simTimer = null;
+    function startDemoHandSim() {
+        if (simTimer) clearInterval(simTimer);
+        showToast("已重置对局，正在为您模拟真实德扑开牌流程...", "fa-solid fa-shuffle");
+        audioSynth.playChips();
+        
+        // 1. 初始化牌桌 (全空公共牌，高亮重置)
+        const board = document.getElementById('board-cards-container');
+        board.innerHTML = `
+            <div class="w-12 h-18 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-center text-slate-600 text-lg font-bold">?</div>
+            <div class="w-12 h-18 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-center text-slate-600 text-lg font-bold">?</div>
+            <div class="w-12 h-18 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-center text-slate-600 text-lg font-bold">?</div>
+            <div class="w-12 h-18 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-center text-slate-600 text-lg font-bold">?</div>
+            <div class="w-12 h-18 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-center text-slate-600 text-lg font-bold">?</div>
+        `;
+        document.getElementById('table-win-probability').classList.add('hidden');
+        document.getElementById('game-pot-size').innerText = "200";
+
+        // 2. 模拟发牌动画 (0.5秒)
+        setTimeout(() => {
+            audioSynth.playDeal();
+            showToast("发牌完成！您的手牌 [ 8♥ ] 与 [ 6♠ ]");
+        }, 1000);
+
+        // 3. 翻牌圈 Flop (3张)
+        setTimeout(() => {
+            audioSynth.playDeal();
+            board.children[0].className = "w-12 h-18 bg-white rounded-lg border-2 border-slate-300 poker-shadow flex flex-col justify-between p-1 text-rose-600 font-bold card-deal-anim";
+            board.children[0].innerHTML = `<div class="text-[10px]">K</div><div class="text-center text-base -mt-1"><i class="fa-solid fa-heart"></i></div><div class="text-[10px] text-right rotate-180">K</div>`;
+            
+            board.children[1].className = "w-12 h-18 bg-white rounded-lg border-2 border-slate-300 poker-shadow flex flex-col justify-between p-1 text-slate-950 font-bold card-deal-anim";
+            board.children[1].innerHTML = `<div class="text-[10px]">6</div><div class="text-center text-base -mt-1"><i class="fa-solid fa-spade"></i></div><div class="text-[10px] text-right rotate-180">6</div>`;
+            
+            board.children[2].className = "w-12 h-18 bg-white rounded-lg border-2 border-slate-300 poker-shadow flex flex-col justify-between p-1 text-rose-600 font-bold card-deal-anim";
+            board.children[2].innerHTML = `<div class="text-[10px]">6</div><div class="text-center text-base -mt-1"><i class="fa-solid fa-heart"></i></div><div class="text-[10px] text-right rotate-180">6</div>`;
+            
+            document.getElementById('game-pot-size').innerText = "450";
+            audioSynth.playChips();
+            showToast("公共牌发 Flop (三条6听葫芦中！)", "fa-solid fa-wand-magic-sparkles");
+            
+            // 展示胜率
+            const prob = document.getElementById('table-win-probability');
+            prob.classList.remove('hidden');
+            prob.innerHTML = `当前手牌听牌: <span class="text-emerald-400 font-extrabold">三条 6 (胜率 78.4%)</span>`;
+        }, 3000);
+
+        // 4. 转牌圈 Turn (1张)
+        setTimeout(() => {
+            audioSynth.playDeal();
+            board.children[3].className = "w-12 h-18 bg-white rounded-lg border-2 border-slate-300 poker-shadow flex flex-col justify-between p-1 text-rose-600 font-bold card-deal-anim";
+            board.children[3].innerHTML = `<div class="text-[10px]">9</div><div class="text-center text-base -mt-1"><i class="fa-solid fa-heart"></i></div><div class="text-[10px] text-right rotate-180">9</div>`;
+            
+            document.getElementById('game-pot-size').innerText = "600";
+            audioSynth.playChips();
+            showToast("公共牌发 Turn - 9♥");
+            
+            const prob = document.getElementById('table-win-probability');
+            prob.innerHTML = `当前手牌听牌: <span class="text-emerald-400 font-extrabold">同花听牌 + 三条 6 (胜率 82.1%)</span>`;
+        }, 5500);
+
+        // 5. 河牌圈 River (1张)
+        setTimeout(() => {
+            audioSynth.playDeal();
+            board.children[4].className = "w-12 h-18 bg-white rounded-lg border-2 border-slate-300 poker-shadow flex flex-col justify-between p-1 text-rose-600 font-bold card-deal-anim";
+            board.children[4].innerHTML = `<div class="text-[10px]">A</div><div class="text-center text-base -mt-1"><i class="fa-solid fa-diamond"></i></div><div class="text-[10px] text-right rotate-180">A</div>`;
+            
+            document.getElementById('game-pot-size').innerText = "850";
+            audioSynth.playChips();
+            showToast("发 River - A♦，亮牌结算环节！");
+            
+            const prob = document.getElementById('table-win-probability');
+            prob.innerHTML = `牌型结算: <span class="text-poker-gold font-black">【葫芦 Full House】 ( 6-6-6-8-8 ) 获胜！</span>`;
+            
+            // 对局手牌写入历史
+            saveToHistory("NLH 好友局 #123450789", "葫芦胜出 (Fullhouse)", "+1,240 积分");
+        }, 8000);
+    }
+
+    function handleAction(type) {
+        if (type === 'fold') {
+            showToast("您已弃牌 (Fold)，等候下一把局开牌。", "fa-solid fa-ban");
+            document.getElementById('hero-card-1').style.opacity = '0.3';
+            document.getElementById('hero-card-2').style.opacity = '0.3';
+        } else if (type === 'call') {
+            audioSynth.playChips();
+            showToast("跟注并过牌 (Check/Call) 成功！过牌权交给下家。");
+        } else {
+            audioSynth.playChips();
+            const raiseVal = document.getElementById('val-raise-num').innerText;
+            showToast(`成功加注 (Raise) ${raiseVal} 筹码，推入池中。`);
+        }
+    }
+
+    function updateRaiseVal(val) {
+        document.getElementById('val-raise-num').innerText = val;
+    }
+
+    function quickSetRaise(pct) {
+        const slider = document.getElementById('slider-raise');
+        let val = 120;
+        if (pct === '1/2') val = 300;
+        else if (pct === '2/3') val = 400;
+        else if (pct === '1x') val = 600;
+        else if (pct === '2x') val = 240;
+        else val = 860; // allin
+        
+        slider.value = val;
+        updateRaiseVal(val);
+        showToast(`快捷拉满比例到: ${pct}`);
+    }
+
+    // 互动道具弹窗展示
+    function showPlayerDetail(name, seatNo) {
+        document.getElementById('pd-name').innerText = name;
+        document.getElementById('pd-seat-no').innerText = seatNo;
+        document.getElementById('pd-avatar').src = `https://placehold.co/100x100/ec4899/ffffff?text=${name.charAt(0)}`;
+        openModal('modal-player-detail');
+    }
+
+    function throwProp(propName) {
+        if (state.user.gems < 2) {
+            showToast("钻石不足无法发送互动道具", "fa-solid fa-triangle-exclamation");
+            return;
+        }
+        state.user.gems -= 2;
+        updateUI();
+        
+        closeModal('modal-player-detail');
+        
+        const em = propName === 'egg' ? '🥚 鸡蛋' : propName === 'beer' ? '🍺 啤酒' : propName === 'flower' ? '🌹 玫瑰' : '💣 炸弹';
+        showToast(`成功消耗 2 钻石，对目标座位发射了【${em}】！`);
+        audioSynth.playDeal();
+    }
+
+    /* 
+       ====================================================
+       STREAMING_CHUNK: 钱包充值模拟及牌局历史历史回顾
+       ====================================================
+    */
+    function saveToHistory(room, type, result) {
+        const item = {
+            id: String(Date.now()),
+            room: room,
+            type: type,
+            result: result,
+            date: "刚刚"
+        };
+        const hist = document.getElementById('hand-history-list');
+        const card = document.createElement('div');
+        card.className = "bg-slate-950 p-3 rounded-2xl border border-slate-850 flex justify-between items-center text-xs";
+        card.innerHTML = `
+            <div>
+                <span class="block font-bold text-white">${item.room}</span>
+                <span class="block text-[10px] text-slate-500 mt-0.5">${item.date} • ${item.type}</span>
+            </div>
+            <span class="font-extrabold text-emerald-400">${item.result}</span>
+        `;
+        if (hist.children.length === 0) hist.appendChild(card);
+        else hist.insertBefore(card, hist.firstChild);
+    }
+
+    function purchaseGems(amt) {
+        state.user.gems += amt;
+        updateUI();
+        showToast(`充值支付成功！已为您注入 ${amt} 钻石。`);
+    }
+
+    function exchangeGemToCoin() {
+        if (state.user.gems < 10) {
+            showToast("充值失败：钻石不足10枚", "fa-solid fa-circle-exclamation");
+            return;
+        }
+        state.user.gems -= 10;
+        state.user.coins += 100;
+        updateUI();
+        showToast("兑换成功：10钻石 成功换取 100 游戏筹码！");
+    }
+
+    /* 
+       ====================================================
+       STREAMING_CHUNK: 弹窗控制底层函数与系统设定
+       ====================================================
+    */
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+        document.getElementById(id).classList.add('flex');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+        document.getElementById(id).classList.remove('flex');
+    }
+
+    function openWalletModal() { openModal('modal-wallet'); }
+    function openHandHistoryModal() { openModal('modal-hand-history'); }
+    function openLanguageModal() { openModal('modal-language'); }
+    function openSettingsModal() { openModal('modal-settings'); }
+
+    function setLang(lang) {
+        state.language = lang;
+        closeModal('modal-language');
+        showToast(lang === 'zh' ? "系统语言已切换：简体中文" : "Language set to: English");
+    }
+
+    function simulateVoice() {
+        showToast("🎙️ 正在录制高保真语音... 松开将同步至同桌玩家听取。");
+    }
+
+    function openEmojiDialog() {
+        showToast("💡 快捷表情符号库开启，可在消息内一键发连击。");
+    }
+
+    function openTableStats() {
+        showToast("当前积分带入：1000 | 实时盈利 +240 | VPIP 24.5%", "fa-solid fa-circle-info");
+    }
+
+    function openTableMenu() {
+        showToast("牌桌菜单展开：带入审核 / 修改GPS限制 / 声音切换。");
+    }
+
+    function resetMockState() {
+        state.user.gems = 80;
+        state.user.coins = 660;
+        updateUI();
+        showToast("所有仿真原型状态已全部清空并重置为初始状态。");
+    }
+</script>
 </body>
 </html>
